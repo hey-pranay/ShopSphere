@@ -4,6 +4,8 @@ import com.shopsphere.ecommerce.dto.ProductRequest;
 import com.shopsphere.ecommerce.dto.ProductResponse;
 import com.shopsphere.ecommerce.service.ProductService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,8 +32,8 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductResponse> getAllProducts() {
-        return productService.getAllProducts();
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+        return productService.getAllProducts(pageable);
     }
 
     @PutMapping("/{id}")

@@ -5,9 +5,9 @@ import com.shopsphere.ecommerce.dto.ProductResponse;
 import com.shopsphere.ecommerce.entity.Product;
 import com.shopsphere.ecommerce.exception.ProductNotFoundException;
 import com.shopsphere.ecommerce.repository.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class ProductService {
@@ -64,11 +64,11 @@ public class ProductService {
         );
     }
 
-    public List<ProductResponse> getAllProducts() {
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
 
-        List<Product> products = productRepository.findAll();
+        Page<Product> products = productRepository.findAll(pageable);
 
-        return products.stream()
+        return products
                 .map(product -> new ProductResponse(
                                 product.getId(),
                                 product.getName(),
@@ -80,7 +80,7 @@ public class ProductService {
                                 product.getCreatedAt(),
                                 product.getUpdatedAt()
                         )
-                ).toList();
+                );
     }
 
     public ProductResponse updateProduct(Long id, ProductRequest request) {
