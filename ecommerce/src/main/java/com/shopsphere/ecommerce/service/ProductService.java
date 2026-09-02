@@ -9,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 public class ProductService {
 
@@ -118,4 +120,49 @@ public class ProductService {
                 ));
         productRepository.delete(product);
     }
+
+    public Page<ProductResponse> searchProduct(
+            String keyword, Pageable pageable
+    ) {
+        Page<Product> products = productRepository.findByNameContainingIgnoreCase(keyword, pageable);
+
+        return products
+                .map(product -> new ProductResponse(
+                                product.getId(),
+                                product.getName(),
+                                product.getDescription(),
+                                product.getPrice(),
+                                product.getStockQuantity(),
+                                product.getActive(),
+                                product.getImageUrl(),
+                                product.getCreatedAt(),
+                                product.getUpdatedAt()
+                        )
+                );
+    }
+
+    public Page<ProductResponse> getProductsByPrice(
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        Page<Product> products = productRepository.findByPriceBetween(
+                minPrice,
+                maxPrice,
+                pageable
+        );
+
+        return products.map(product -> new ProductResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getActive(),
+                product.getImageUrl(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        ));
+    }
+
 }
