@@ -1,44 +1,49 @@
 package com.shopsphere.ecommerce.dto;
 
+import jakarta.validation.constraints.*;
+
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
-public class ProductResponse {
+public class ProductRequest {
 
-    private Long id;
+    @NotBlank(message = "Product name is required")
+    @Size(max = 150, message = "Product name must not exceed 150 characters")
     private String name;
-    private String description;
-    private BigDecimal price;
-    private Integer stockQuantity;
-    private Boolean active;
-    private String imageUrl;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
-    public ProductResponse(
-            Long id,
+    @Size(message = "Description must not exceed 200 characters")
+    private String description;
+
+    @NotNull(message = "Price is required")
+    @DecimalMin(value = "0.01", message = "Price must be greater than 0")
+    private BigDecimal price;
+
+    @NotNull(message = "Stock quantity is required")
+    @Min(value = 0, message = " Stock quantity cannot be negative")
+    private Integer stockQuantity;
+
+    private Boolean active;
+
+    @Size(max = 500, message = "Image URL must not exceed 500 characters")
+    private String imageUrl;
+
+    public ProductRequest() {
+    }
+
+
+    public ProductRequest(
             String name,
             String description,
             BigDecimal price,
             Integer stockQuantity,
             Boolean active,
-            String imageUrl,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            String imageUrl
     ) {
-        this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;
         this.stockQuantity = stockQuantity;
         this.active = active;
         this.imageUrl = imageUrl;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getId() {
-        return id;
     }
 
     public String getName() {
@@ -63,13 +68,5 @@ public class ProductResponse {
 
     public String getImageUrl() {
         return imageUrl;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
     }
 }
