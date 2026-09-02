@@ -5,8 +5,10 @@ import com.shopsphere.ecommerce.dto.ProductResponse;
 import com.shopsphere.ecommerce.entity.Product;
 import com.shopsphere.ecommerce.exception.ProductNotFoundException;
 import com.shopsphere.ecommerce.repository.ProductRepository;
+import com.shopsphere.ecommerce.specification.ProductSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -163,6 +165,54 @@ public class ProductService {
                 product.getCreatedAt(),
                 product.getUpdatedAt()
         ));
+
+
     }
+
+    public Page<ProductResponse> filterProducts(
+            String keyword,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        Specification<Product> specification =
+                (root, query, criteriaBuilder) ->
+                        criteriaBuilder.conjunction();
+
+        if (keyword != null && !keyword.isBlank()) {
+            specification = specification.and(
+                    ProductSpecification.nameContains(keyword)
+            );
+        }
+
+        if (minPrice != null) {
+            specification = specification.and(
+                    ProductSpecification.priceGreaterThanOrEqual(minPrice)
+            );
+        }
+
+        if (maxPrice != null) {
+            specification = specification.and(
+                    ProductSpecification.priceLessThanOrEqual(maxPrice)
+            );
+        }
+
+        Page<Product> products =
+                productRepository.findAll(specification, pageable);
+
+        return products.map(product -> new ProductResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getActive(),
+                product.getImageUrl(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        ));
+
+    }
+
 
 }

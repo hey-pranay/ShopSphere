@@ -64,4 +64,20 @@ public class ProductController {
     ) {
         return productService.getProductsByPrice(minPrice, maxPrice, pageable);
     }
+
+    @GetMapping("/filter")
+    public Page<ProductResponse> filterProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        return productService.filterProducts(
+                keyword,
+                minPrice,
+                maxPrice,
+                pageable
+        );
+    }
+
 }
