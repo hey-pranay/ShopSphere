@@ -12,6 +12,8 @@ public class ProductResponse {
     private Integer stockQuantity;
     private Boolean active;
     private String imageUrl;
+    private Long categoryId;
+    private String categoryName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -23,6 +25,8 @@ public class ProductResponse {
             Integer stockQuantity,
             Boolean active,
             String imageUrl,
+            Long categoryId,
+            String categoryName,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
@@ -33,6 +37,8 @@ public class ProductResponse {
         this.stockQuantity = stockQuantity;
         this.active = active;
         this.imageUrl = imageUrl;
+        this.categoryId = categoryId;
+        this.categoryName = categoryName;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -71,5 +77,13 @@ public class ProductResponse {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
     }
 }

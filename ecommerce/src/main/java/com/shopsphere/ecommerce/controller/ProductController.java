@@ -31,10 +31,33 @@ public class ProductController {
         return productService.createProduct(request);
     }
 
+//    @GetMapping
+//    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+//        return productService.getAllProducts(pageable);
+//    }
+
+
     @GetMapping
-    public Page<ProductResponse> getAllProducts(Pageable pageable) {
-        return productService.getAllProducts(pageable);
+    public Page<ProductResponse> getProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean inStock,
+            @RequestParam(required = false) Long categoryId,
+            Pageable pageable
+    ) {
+        return productService.filterProducts(
+                keyword,
+                minPrice,
+                maxPrice,
+                active,
+                inStock,
+                categoryId,
+                pageable
+        );
     }
+
 
     @PutMapping("/{id}")
     public ProductResponse updateProduct(
@@ -50,34 +73,38 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/search")
-    public Page<ProductResponse> searchProducts(
-            @RequestParam String keyword, Pageable pageable) {
-        return productService.searchProduct(keyword, pageable);
-    }
+//    @GetMapping("/search")
+//    public Page<ProductResponse> searchProducts(
+//            @RequestParam String keyword, Pageable pageable) {
+//        return productService.searchProduct(keyword, pageable);
+//    }
 
-    @GetMapping("/filter/price")
-    public Page<ProductResponse> getProductsByPrice(
-            @RequestParam BigDecimal minPrice,
-            @RequestParam BigDecimal maxPrice,
-            Pageable pageable
-    ) {
-        return productService.getProductsByPrice(minPrice, maxPrice, pageable);
-    }
+//    @GetMapping("/filter/price")
+//    public Page<ProductResponse> getProductsByPrice(
+//            @RequestParam BigDecimal minPrice,
+//            @RequestParam BigDecimal maxPrice,
+//            Pageable pageable
+//    ) {
+//        return productService.getProductsByPrice(minPrice, maxPrice, pageable);
+//    }
 
-    @GetMapping("/filter")
-    public Page<ProductResponse> filterProducts(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
-            Pageable pageable
-    ) {
-        return productService.filterProducts(
-                keyword,
-                minPrice,
-                maxPrice,
-                pageable
-        );
-    }
+//    @GetMapping("/filter")
+//    public Page<ProductResponse> filterProducts(
+//            @RequestParam(required = false) String keyword,
+//            @RequestParam(required = false) BigDecimal minPrice,
+//            @RequestParam(required = false) BigDecimal maxPrice,
+//            @RequestParam(required = false) Boolean active,
+//            @RequestParam(required = false) Boolean inStock,
+//            Pageable pageable
+//    ) {
+//        return productService.filterProducts(
+//                keyword,
+//                minPrice,
+//                maxPrice,
+//                active,
+//                inStock,
+//                pageable
+//        );
+//    }
 
 }

@@ -34,4 +34,37 @@ public class ProductSpecification {
                         maxPrice
                 );
     }
+
+    public static Specification<Product> isActive(Boolean active) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(
+                        root.get("active"),
+                        active
+                );
+    }
+
+    public static Specification<Product> isInStock(Boolean inStock) {
+        return (root, query, criteriaBuilder) -> {
+            if (inStock) {
+                return criteriaBuilder.greaterThan(
+                        root.get("stockQuantity"),
+                        0
+                );
+            }
+
+            return criteriaBuilder.equal(
+                    root.get("stockQuantity"),
+                    0
+            );
+        };
+    }
+
+    public static Specification<Product> hasCategory(Long categoryId) {
+
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(
+                        root.get("category").get("id"),
+                        categoryId
+                );
+    }
 }

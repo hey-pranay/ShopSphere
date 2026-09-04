@@ -16,6 +16,11 @@ public class Product {
     @Column(nullable = false, length = 150)
     private String name;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+
     @Column(length = 200)
     private String description;
 
@@ -36,6 +41,7 @@ public class Product {
 
     private LocalDateTime updatedAt;
 
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -51,8 +57,8 @@ public class Product {
     public Product() {
     }
 
-    public Product(Long id, String name, String category, String category1, String description, BigDecimal price, Integer stockQuantity,
-                   Boolean active, String imageUrl, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Product(Long id, String name, String description, BigDecimal price, Integer stockQuantity,
+                   Boolean active, String imageUrl, LocalDateTime createdAt, LocalDateTime updatedAt, Category category) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -62,6 +68,7 @@ public class Product {
         this.imageUrl = imageUrl;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.category = category;
     }
 
     public Long getId() {
@@ -124,6 +131,13 @@ public class Product {
         return updatedAt;
     }
 
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
 
     @Override
     public String toString() {

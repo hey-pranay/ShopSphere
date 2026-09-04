@@ -26,6 +26,9 @@ public class ProductRequest {
     @Size(max = 500, message = "Image URL must not exceed 500 characters")
     private String imageUrl;
 
+    @NotNull(message = "Category ID is required")
+    private Long categoryId;
+
     public ProductRequest() {
     }
 
@@ -36,7 +39,8 @@ public class ProductRequest {
             BigDecimal price,
             Integer stockQuantity,
             Boolean active,
-            String imageUrl
+            String imageUrl,
+            Long categoryId
     ) {
         this.name = name;
         this.description = description;
@@ -44,6 +48,7 @@ public class ProductRequest {
         this.stockQuantity = stockQuantity;
         this.active = active;
         this.imageUrl = imageUrl;
+        this.categoryId = categoryId;
     }
 
     public String getName() {
@@ -68,5 +73,9 @@ public class ProductRequest {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
     }
 }

@@ -29,6 +29,20 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(CategoryNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleCategoryNotFound(
+            CategoryNotFoundException exception
+    ) {
+        ApiErrorResponse response = new ApiErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                exception.getMessage(),
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(response);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationException(

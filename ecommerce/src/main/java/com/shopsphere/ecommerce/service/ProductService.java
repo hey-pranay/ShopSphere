@@ -2,8 +2,11 @@ package com.shopsphere.ecommerce.service;
 
 import com.shopsphere.ecommerce.dto.ProductRequest;
 import com.shopsphere.ecommerce.dto.ProductResponse;
+import com.shopsphere.ecommerce.entity.Category;
 import com.shopsphere.ecommerce.entity.Product;
+import com.shopsphere.ecommerce.exception.CategoryNotFoundException;
 import com.shopsphere.ecommerce.exception.ProductNotFoundException;
+import com.shopsphere.ecommerce.repository.CategoryRepository;
 import com.shopsphere.ecommerce.repository.ProductRepository;
 import com.shopsphere.ecommerce.specification.ProductSpecification;
 import org.springframework.data.domain.Page;
@@ -18,8 +21,14 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
-    public ProductService(ProductRepository productRepository) {
+    private final CategoryRepository categoryRepository;
+
+    public ProductService(
+            ProductRepository productRepository,
+            CategoryRepository categoryRepository
+    ) {
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     public ProductResponse getProduct(Long id) {
@@ -36,12 +45,19 @@ public class ProductService {
                 product.getStockQuantity(),
                 product.getActive(),
                 product.getImageUrl(),
+                product.getCategory().getId(),
+                product.getCategory().getName(),
                 product.getCreatedAt(),
                 product.getUpdatedAt()
         );
     }
 
     public ProductResponse createProduct(ProductRequest request) {
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new CategoryNotFoundException(
+                        "Category with id " + request.getCategoryId() + " not found"
+                ));
 
         Product product = new Product();
 
@@ -51,6 +67,7 @@ public class ProductService {
         product.setStockQuantity(request.getStockQuantity());
         product.setActive(request.getActive());
         product.setImageUrl(request.getImageUrl());
+        product.setCategory(category);
 
         Product savedProduct = productRepository.save(product);
 
@@ -62,6 +79,8 @@ public class ProductService {
                 savedProduct.getStockQuantity(),
                 savedProduct.getActive(),
                 savedProduct.getImageUrl(),
+                savedProduct.getCategory().getId(),
+                savedProduct.getCategory().getName(),
                 savedProduct.getCreatedAt(),
                 savedProduct.getUpdatedAt()
 
@@ -81,6 +100,8 @@ public class ProductService {
                                 product.getStockQuantity(),
                                 product.getActive(),
                                 product.getImageUrl(),
+                                product.getCategory().getId(),
+                                product.getCategory().getName(),
                                 product.getCreatedAt(),
                                 product.getUpdatedAt()
                         )
@@ -91,6 +112,11 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(
                         "Product with id " + id + " not found"
+                ));
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new CategoryNotFoundException(
+                        "Category with id " + request.getCategoryId() + " not found"
                 ));
 
         product.setName(request.getName());
@@ -110,6 +136,8 @@ public class ProductService {
                 updatedProduct.getStockQuantity(),
                 updatedProduct.getActive(),
                 updatedProduct.getImageUrl(),
+                updatedProduct.getCategory().getId(),
+                updatedProduct.getCategory().getName(),
                 updatedProduct.getCreatedAt(),
                 updatedProduct.getUpdatedAt()
         );
@@ -120,6 +148,8 @@ public class ProductService {
                 .orElseThrow(() -> new ProductNotFoundException(
                         "Product with id " + id + " not found"
                 ));
+
+
         productRepository.delete(product);
     }
 
@@ -137,6 +167,8 @@ public class ProductService {
                                 product.getStockQuantity(),
                                 product.getActive(),
                                 product.getImageUrl(),
+                                product.getCategory().getId(),
+                                product.getCategory().getName(),
                                 product.getCreatedAt(),
                                 product.getUpdatedAt()
                         )
@@ -162,6 +194,8 @@ public class ProductService {
                 product.getStockQuantity(),
                 product.getActive(),
                 product.getImageUrl(),
+                product.getCategory().getId(),
+                product.getCategory().getName(),
                 product.getCreatedAt(),
                 product.getUpdatedAt()
         ));
@@ -173,6 +207,9 @@ public class ProductService {
             String keyword,
             BigDecimal minPrice,
             BigDecimal maxPrice,
+            Boolean active,
+            Boolean inStock,
+            Long categoryId,
             Pageable pageable
     ) {
         Specification<Product> specification =
@@ -197,6 +234,24 @@ public class ProductService {
             );
         }
 
+        if (active != null) {
+            specification = specification.and(
+                    ProductSpecification.isActive(active)
+            );
+        }
+
+        if (inStock != null) {
+            specification = specification.and(
+                    ProductSpecification.isInStock(inStock)
+            );
+        }
+
+        if (categoryId != null) {
+            specification = specification.and(
+                    ProductSpecification.hasCategory(categoryId)
+            );
+        }
+
         Page<Product> products =
                 productRepository.findAll(specification, pageable);
 
@@ -208,6 +263,8 @@ public class ProductService {
                 product.getStockQuantity(),
                 product.getActive(),
                 product.getImageUrl(),
+                product.getCategory().getId(),
+                product.getCategory().getName(),
                 product.getCreatedAt(),
                 product.getUpdatedAt()
         ));
