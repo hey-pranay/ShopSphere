@@ -4,6 +4,7 @@ import com.shopsphere.ecommerce.dto.CategoryRequest;
 import com.shopsphere.ecommerce.dto.CategoryResponse;
 import com.shopsphere.ecommerce.entity.Category;
 import com.shopsphere.ecommerce.exception.CategoryNotFoundException;
+import com.shopsphere.ecommerce.exception.DuplicateCategoryException;
 import com.shopsphere.ecommerce.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,13 @@ public class CategoryService {
     }
 
     public CategoryResponse createCategory(CategoryRequest request) {
+
+        if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new DuplicateCategoryException(
+                    "Category with name '" + request.getName() + "' already exists"
+            );
+        }
+
         Category category = new Category();
 
         category.setName(request.getName());
@@ -62,6 +70,14 @@ public class CategoryService {
                 .orElseThrow(() -> new CategoryNotFoundException(
                         "Category with id " + id + " not found"
                 ));
+
+        if (categoryRepository.existsByNameIgnoreCase(request.getName())
+                && !category.getName().equalsIgnoreCase(request.getName())
+        ) {
+            throw new DuplicateCategoryException(
+                    "Category with name '" + request.getName() + "' already exists"
+            );
+        }
 
         category.setName(request.getName());
 

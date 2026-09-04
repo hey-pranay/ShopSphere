@@ -6,6 +6,7 @@ import com.shopsphere.ecommerce.entity.Category;
 import com.shopsphere.ecommerce.entity.Product;
 import com.shopsphere.ecommerce.exception.CategoryNotFoundException;
 import com.shopsphere.ecommerce.exception.ProductNotFoundException;
+import com.shopsphere.ecommerce.mapper.ProductMapper;
 import com.shopsphere.ecommerce.repository.CategoryRepository;
 import com.shopsphere.ecommerce.repository.ProductRepository;
 import com.shopsphere.ecommerce.specification.ProductSpecification;
@@ -23,41 +24,39 @@ public class ProductService {
 
     private final CategoryRepository categoryRepository;
 
-    public ProductService(
-            ProductRepository productRepository,
-            CategoryRepository categoryRepository
-    ) {
+    private final ProductMapper productMapper;
+
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, ProductMapper productMapper) {
+
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.productMapper = productMapper;
     }
 
     public ProductResponse getProduct(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException(
-                        "Product with id " + id + " not found"
-                ));
+        Product product = productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product with id " + id + " not found"));
 
-        return new ProductResponse(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getStockQuantity(),
-                product.getActive(),
-                product.getImageUrl(),
-                product.getCategory().getId(),
-                product.getCategory().getName(),
-                product.getCreatedAt(),
-                product.getUpdatedAt()
-        );
+//        return new ProductResponse(
+//                product.getId(),
+//                product.getName(),
+//                product.getDescription(),
+//                product.getPrice(),
+//                product.getStockQuantity(),
+//                product.getActive(),
+//                product.getImageUrl(),
+//                product.getCategory().getId(),
+//                product.getCategory().getName(),
+//                product.getCreatedAt(),
+//                product.getUpdatedAt()
+//        );
+
+        return productMapper.toResponse(product);
+
     }
 
     public ProductResponse createProduct(ProductRequest request) {
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new CategoryNotFoundException(
-                        "Category with id " + request.getCategoryId() + " not found"
-                ));
+        Category category = categoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new CategoryNotFoundException("Category with id " + request.getCategoryId() + " not found"));
 
         Product product = new Product();
 
@@ -71,53 +70,52 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
 
-        return new ProductResponse(
-                savedProduct.getId(),
-                savedProduct.getName(),
-                savedProduct.getDescription(),
-                savedProduct.getPrice(),
-                savedProduct.getStockQuantity(),
-                savedProduct.getActive(),
-                savedProduct.getImageUrl(),
-                savedProduct.getCategory().getId(),
-                savedProduct.getCategory().getName(),
-                savedProduct.getCreatedAt(),
-                savedProduct.getUpdatedAt()
+//        return new ProductResponse(
+//                savedProduct.getId(),
+//                savedProduct.getName(),
+//                savedProduct.getDescription(),
+//                savedProduct.getPrice(),
+//                savedProduct.getStockQuantity(),
+//                savedProduct.getActive(),
+//                savedProduct.getImageUrl(),
+//                savedProduct.getCategory().getId(),
+//                savedProduct.getCategory().getName(),
+//                savedProduct.getCreatedAt(),
+//                savedProduct.getUpdatedAt()
+//
+//        );
 
-        );
+        return productMapper.toResponse(product);
+
     }
 
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
 
         Page<Product> products = productRepository.findAll(pageable);
 
-        return products
-                .map(product -> new ProductResponse(
-                                product.getId(),
-                                product.getName(),
-                                product.getDescription(),
-                                product.getPrice(),
-                                product.getStockQuantity(),
-                                product.getActive(),
-                                product.getImageUrl(),
-                                product.getCategory().getId(),
-                                product.getCategory().getName(),
-                                product.getCreatedAt(),
-                                product.getUpdatedAt()
-                        )
-                );
+//        return products
+//                .map(product -> new ProductResponse(
+//                                product.getId(),
+//                                product.getName(),
+//                                product.getDescription(),
+//                                product.getPrice(),
+//                                product.getStockQuantity(),
+//                                product.getActive(),
+//                                product.getImageUrl(),
+//                                product.getCategory().getId(),
+//                                product.getCategory().getName(),
+//                                product.getCreatedAt(),
+//                                product.getUpdatedAt()
+//                        )
+//                );
+
+        return products.map(productMapper::toResponse);
     }
 
     public ProductResponse updateProduct(Long id, ProductRequest request) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException(
-                        "Product with id " + id + " not found"
-                ));
+        Product product = productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product with id " + id + " not found"));
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new CategoryNotFoundException(
-                        "Category with id " + request.getCategoryId() + " not found"
-                ));
+        Category category = categoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new CategoryNotFoundException("Category with id " + request.getCategoryId() + " not found"));
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -128,146 +126,87 @@ public class ProductService {
 
         Product updatedProduct = productRepository.save(product);
 
-        return new ProductResponse(
-                updatedProduct.getId(),
-                updatedProduct.getName(),
-                updatedProduct.getDescription(),
-                updatedProduct.getPrice(),
-                updatedProduct.getStockQuantity(),
-                updatedProduct.getActive(),
-                updatedProduct.getImageUrl(),
-                updatedProduct.getCategory().getId(),
-                updatedProduct.getCategory().getName(),
-                updatedProduct.getCreatedAt(),
-                updatedProduct.getUpdatedAt()
-        );
+//        return new ProductResponse(
+//                updatedProduct.getId(),
+//                updatedProduct.getName(),
+//                updatedProduct.getDescription(),
+//                updatedProduct.getPrice(),
+//                updatedProduct.getStockQuantity(),
+//                updatedProduct.getActive(),
+//                updatedProduct.getImageUrl(),
+//                updatedProduct.getCategory().getId(),
+//                updatedProduct.getCategory().getName(),
+//                updatedProduct.getCreatedAt(),
+//                updatedProduct.getUpdatedAt()
+//        );
+
+        return productMapper.toResponse(product);
     }
 
     public void deleteProduct(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException(
-                        "Product with id " + id + " not found"
-                ));
-
+        Product product = productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product with id " + id + " not found"));
 
         productRepository.delete(product);
     }
 
-    public Page<ProductResponse> searchProduct(
-            String keyword, Pageable pageable
-    ) {
+    public Page<ProductResponse> searchProduct(String keyword, Pageable pageable) {
         Page<Product> products = productRepository.findByNameContainingIgnoreCase(keyword, pageable);
 
-        return products
-                .map(product -> new ProductResponse(
-                                product.getId(),
-                                product.getName(),
-                                product.getDescription(),
-                                product.getPrice(),
-                                product.getStockQuantity(),
-                                product.getActive(),
-                                product.getImageUrl(),
-                                product.getCategory().getId(),
-                                product.getCategory().getName(),
-                                product.getCreatedAt(),
-                                product.getUpdatedAt()
-                        )
-                );
+        return products.map(product -> new ProductResponse(product.getId(), product.getName(), product.getDescription(), product.getPrice(), product.getStockQuantity(), product.getActive(), product.getImageUrl(), product.getCategory().getId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt()));
     }
 
-    public Page<ProductResponse> getProductsByPrice(
-            BigDecimal minPrice,
-            BigDecimal maxPrice,
-            Pageable pageable
-    ) {
-        Page<Product> products = productRepository.findByPriceBetween(
-                minPrice,
-                maxPrice,
-                pageable
-        );
+    public Page<ProductResponse> getProductsByPrice(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        Page<Product> products = productRepository.findByPriceBetween(minPrice, maxPrice, pageable);
 
-        return products.map(product -> new ProductResponse(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getStockQuantity(),
-                product.getActive(),
-                product.getImageUrl(),
-                product.getCategory().getId(),
-                product.getCategory().getName(),
-                product.getCreatedAt(),
-                product.getUpdatedAt()
-        ));
+        return products.map(product -> new ProductResponse(product.getId(), product.getName(), product.getDescription(), product.getPrice(), product.getStockQuantity(), product.getActive(), product.getImageUrl(), product.getCategory().getId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt()));
 
 
     }
 
-    public Page<ProductResponse> filterProducts(
-            String keyword,
-            BigDecimal minPrice,
-            BigDecimal maxPrice,
-            Boolean active,
-            Boolean inStock,
-            Long categoryId,
-            Pageable pageable
-    ) {
-        Specification<Product> specification =
-                (root, query, criteriaBuilder) ->
-                        criteriaBuilder.conjunction();
+    public Page<ProductResponse> filterProducts(String keyword, BigDecimal minPrice, BigDecimal maxPrice, Boolean active, Boolean inStock, Long categoryId, Pageable pageable) {
+        Specification<Product> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
 
         if (keyword != null && !keyword.isBlank()) {
-            specification = specification.and(
-                    ProductSpecification.nameContains(keyword)
-            );
+            specification = specification.and(ProductSpecification.nameContains(keyword));
         }
 
         if (minPrice != null) {
-            specification = specification.and(
-                    ProductSpecification.priceGreaterThanOrEqual(minPrice)
-            );
+            specification = specification.and(ProductSpecification.priceGreaterThanOrEqual(minPrice));
         }
 
         if (maxPrice != null) {
-            specification = specification.and(
-                    ProductSpecification.priceLessThanOrEqual(maxPrice)
-            );
+            specification = specification.and(ProductSpecification.priceLessThanOrEqual(maxPrice));
         }
 
         if (active != null) {
-            specification = specification.and(
-                    ProductSpecification.isActive(active)
-            );
+            specification = specification.and(ProductSpecification.isActive(active));
         }
 
         if (inStock != null) {
-            specification = specification.and(
-                    ProductSpecification.isInStock(inStock)
-            );
+            specification = specification.and(ProductSpecification.isInStock(inStock));
         }
 
         if (categoryId != null) {
-            specification = specification.and(
-                    ProductSpecification.hasCategory(categoryId)
-            );
+            specification = specification.and(ProductSpecification.hasCategory(categoryId));
         }
 
-        Page<Product> products =
-                productRepository.findAll(specification, pageable);
+        Page<Product> products = productRepository.findAll(specification, pageable);
 
-        return products.map(product -> new ProductResponse(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getStockQuantity(),
-                product.getActive(),
-                product.getImageUrl(),
-                product.getCategory().getId(),
-                product.getCategory().getName(),
-                product.getCreatedAt(),
-                product.getUpdatedAt()
-        ));
+//        return products.map(product -> new ProductResponse(
+//                product.getId(),
+//                product.getName(),
+//                product.getDescription(),
+//                product.getPrice(),
+//                product.getStockQuantity(),
+//                product.getActive(),
+//                product.getImageUrl(),
+//                product.getCategory().getId(),
+//                product.getCategory().getName(),
+//                product.getCreatedAt(),
+//                product.getUpdatedAt()
+//        ));
+
+        return products.map(productMapper::toResponse);
 
     }
 
