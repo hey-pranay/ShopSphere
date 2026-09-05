@@ -107,4 +107,12 @@ public class ProductController {
 //        );
 //    }
 
+    @PatchMapping("/{id}/activate")
+    public ProductResponse  activateProduct(
+            @PathVariable Long id
+            ){
+
+        return productService.activateProduct(id);
+    }
+
 }

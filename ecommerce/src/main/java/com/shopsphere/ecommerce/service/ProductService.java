@@ -146,7 +146,8 @@ public class ProductService {
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product with id " + id + " not found"));
 
-        productRepository.delete(product);
+        product.setActive(false);
+        productRepository.save(product);
     }
 
     public Page<ProductResponse> searchProduct(String keyword, Pageable pageable) {
@@ -164,6 +165,15 @@ public class ProductService {
     }
 
     public Page<ProductResponse> filterProducts(String keyword, BigDecimal minPrice, BigDecimal maxPrice, Boolean active, Boolean inStock, Long categoryId, Pageable pageable) {
+
+        if (categoryId != null &&
+                !categoryRepository.existsById(categoryId)) {
+
+            throw new CategoryNotFoundException(
+                    "Category with id " + categoryId + " not found"
+            );
+        }
+
         Specification<Product> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
 
         if (keyword != null && !keyword.isBlank()) {
@@ -178,7 +188,7 @@ public class ProductService {
             specification = specification.and(ProductSpecification.priceLessThanOrEqual(maxPrice));
         }
 
-        if (active != null) {
+        if (active = true) {
             specification = specification.and(ProductSpecification.isActive(active));
         }
 
@@ -189,6 +199,7 @@ public class ProductService {
         if (categoryId != null) {
             specification = specification.and(ProductSpecification.hasCategory(categoryId));
         }
+
 
         Page<Product> products = productRepository.findAll(specification, pageable);
 
@@ -208,6 +219,20 @@ public class ProductService {
 
         return products.map(productMapper::toResponse);
 
+    }
+
+    public ProductResponse activateProduct(Long id) {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "Product with id " + id + " not found"
+                ));
+
+        product.setActive(true);
+
+        Product activateProduct = productRepository.save(product);
+
+        return productMapper.toResponse(activateProduct);
     }
 
 
