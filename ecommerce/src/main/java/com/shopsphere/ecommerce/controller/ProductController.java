@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -113,6 +114,13 @@ public class ProductController {
             ){
 
         return productService.activateProduct(id);
+    }
+
+    @GetMapping("/test-auth")
+    public String testAuth(Authentication authentication) {
+
+        return "Authenticated user: " + authentication.getName()
+                + " | Authorities: " + authentication.getAuthorities();
     }
 
 }

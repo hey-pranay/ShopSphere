@@ -1,6 +1,7 @@
 package com.shopsphere.ecommerce.service;
 
 import com.shopsphere.ecommerce.dto.LoginRequest;
+import com.shopsphere.ecommerce.dto.LoginResponse;
 import com.shopsphere.ecommerce.dto.RegisterRequest;
 import com.shopsphere.ecommerce.dto.UserResponse;
 import com.shopsphere.ecommerce.entity.Role;
@@ -14,13 +15,16 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public UserService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public UserResponse register(RegisterRequest request) {
@@ -50,7 +54,8 @@ public class UserService {
         );
     }
 
-    public UserResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
+
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException(
                         "Invalid email or password"
@@ -63,11 +68,18 @@ public class UserService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        return new UserResponse(
+        String token = jwtService.generateToken(user);
+
+        UserResponse userResponse = new UserResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole()
+        );
+
+        return new LoginResponse(
+                token,
+                userResponse
         );
     }
 }

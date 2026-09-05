@@ -1,9 +1,9 @@
 package com.shopsphere.ecommerce.controller;
 
 import com.shopsphere.ecommerce.dto.LoginRequest;
+import com.shopsphere.ecommerce.dto.LoginResponse;
 import com.shopsphere.ecommerce.dto.RegisterRequest;
 import com.shopsphere.ecommerce.dto.UserResponse;
-import com.shopsphere.ecommerce.entity.User;
 import com.shopsphere.ecommerce.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,15 +27,15 @@ public class AuthController {
     @PostMapping("/register")
     public UserResponse register(
             @Valid @RequestBody RegisterRequest request
-            ){
+    ) {
         return userService.register(request);
     }
 
     @PostMapping("/login")
-    public UserResponse login(
+    public LoginResponse login(
             @Valid @RequestBody LoginRequest request
-            ) {
-        return  userService.login(request);
+    ) {
+        return userService.login(request);
     }
 
 }
