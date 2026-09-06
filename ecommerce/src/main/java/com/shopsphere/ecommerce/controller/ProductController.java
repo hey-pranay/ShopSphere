@@ -116,11 +116,11 @@ public class ProductController {
         return productService.activateProduct(id);
     }
 
-    @GetMapping("/test-auth")
-    public String testAuth(Authentication authentication) {
-
-        return "Authenticated user: " + authentication.getName()
-                + " | Authorities: " + authentication.getAuthorities();
-    }
+//    @GetMapping("/test-auth")
+//    public String testAuth(Authentication authentication) {
+//
+//        return "Authenticated user: " + authentication.getName()
+//                + " | Authorities: " + authentication.getAuthorities();
+//    }
 
 }

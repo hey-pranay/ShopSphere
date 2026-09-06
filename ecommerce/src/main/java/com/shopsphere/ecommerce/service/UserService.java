@@ -1,11 +1,10 @@
 package com.shopsphere.ecommerce.service;
 
-import com.shopsphere.ecommerce.dto.LoginRequest;
-import com.shopsphere.ecommerce.dto.LoginResponse;
-import com.shopsphere.ecommerce.dto.RegisterRequest;
-import com.shopsphere.ecommerce.dto.UserResponse;
+import com.shopsphere.ecommerce.dto.*;
 import com.shopsphere.ecommerce.entity.Role;
 import com.shopsphere.ecommerce.entity.User;
+import com.shopsphere.ecommerce.exception.DuplicateCategoryException;
+import com.shopsphere.ecommerce.exception.InvalidCredentialsException;
 import com.shopsphere.ecommerce.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,7 @@ public class UserService {
     public UserResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new DuplicateCategoryException("Email already registered");
         }
 
         User user = new User();
@@ -57,7 +56,7 @@ public class UserService {
     public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new InvalidCredentialsException(
                         "Invalid email or password"
                 ));
 
@@ -65,7 +64,7 @@ public class UserService {
                 request.getPassword(),
                 user.getPassword()
         )) {
-            throw new RuntimeException("Invalid email or password");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         String token = jwtService.generateToken(user);
@@ -80,6 +79,35 @@ public class UserService {
         return new LoginResponse(
                 token,
                 userResponse
+        );
+    }
+
+
+    public UserResponse createAdmin(AdminRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateCategoryException("Email already registered");
+        }
+
+        User user = new User();
+
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+
+        String hashedPassword =
+                passwordEncoder.encode(request.getPassword());
+
+        user.setPassword(hashedPassword);
+
+        user.setRole(Role.ADMIN);
+        user.setActive(true);
+
+        User savedUser = userRepository.save(user);
+
+        return new UserResponse(
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getName(),
+                savedUser.getRole()
         );
     }
 }
