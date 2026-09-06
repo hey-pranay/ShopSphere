@@ -1,7 +1,7 @@
 package com.shopsphere.ecommerce.controller;
 
-import com.shopsphere.ecommerce.dto.CategoryRequest;
-import com.shopsphere.ecommerce.dto.CategoryResponse;
+import com.shopsphere.ecommerce.dto.category.CategoryRequest;
+import com.shopsphere.ecommerce.dto.category.CategoryResponse;
 import com.shopsphere.ecommerce.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

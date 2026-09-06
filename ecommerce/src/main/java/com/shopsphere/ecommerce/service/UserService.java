@@ -1,6 +1,10 @@
 package com.shopsphere.ecommerce.service;
 
-import com.shopsphere.ecommerce.dto.*;
+import com.shopsphere.ecommerce.dto.admin.AdminRequest;
+import com.shopsphere.ecommerce.dto.auth.LoginRequest;
+import com.shopsphere.ecommerce.dto.auth.LoginResponse;
+import com.shopsphere.ecommerce.dto.auth.RegisterRequest;
+import com.shopsphere.ecommerce.dto.auth.UserResponse;
 import com.shopsphere.ecommerce.entity.Role;
 import com.shopsphere.ecommerce.entity.User;
 import com.shopsphere.ecommerce.exception.DuplicateCategoryException;

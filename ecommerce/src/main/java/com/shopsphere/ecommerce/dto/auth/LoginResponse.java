@@ -1,4 +1,4 @@
-package com.shopsphere.ecommerce.dto;
+package com.shopsphere.ecommerce.dto.auth;
 
 public class LoginResponse {
     private String token;

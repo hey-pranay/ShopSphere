@@ -1,4 +1,4 @@
-package com.shopsphere.ecommerce.dto;
+package com.shopsphere.ecommerce.dto.auth;
 
 import com.shopsphere.ecommerce.entity.Role;
 

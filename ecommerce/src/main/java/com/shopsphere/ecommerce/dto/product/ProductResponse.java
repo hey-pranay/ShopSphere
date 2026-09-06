@@ -1,4 +1,4 @@
-package com.shopsphere.ecommerce.dto;
+package com.shopsphere.ecommerce.dto.product;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-package com.shopsphere.ecommerce.dto;
+package com.shopsphere.ecommerce.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

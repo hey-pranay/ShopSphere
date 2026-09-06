@@ -1,13 +1,12 @@
 package com.shopsphere.ecommerce.controller;
 
-import com.shopsphere.ecommerce.dto.ProductRequest;
-import com.shopsphere.ecommerce.dto.ProductResponse;
+import com.shopsphere.ecommerce.dto.product.ProductRequest;
+import com.shopsphere.ecommerce.dto.product.ProductResponse;
 import com.shopsphere.ecommerce.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;

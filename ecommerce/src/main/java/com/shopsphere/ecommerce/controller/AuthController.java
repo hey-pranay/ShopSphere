@@ -1,9 +1,9 @@
 package com.shopsphere.ecommerce.controller;
 
-import com.shopsphere.ecommerce.dto.LoginRequest;
-import com.shopsphere.ecommerce.dto.LoginResponse;
-import com.shopsphere.ecommerce.dto.RegisterRequest;
-import com.shopsphere.ecommerce.dto.UserResponse;
+import com.shopsphere.ecommerce.dto.auth.LoginRequest;
+import com.shopsphere.ecommerce.dto.auth.LoginResponse;
+import com.shopsphere.ecommerce.dto.auth.RegisterRequest;
+import com.shopsphere.ecommerce.dto.auth.UserResponse;
 import com.shopsphere.ecommerce.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;

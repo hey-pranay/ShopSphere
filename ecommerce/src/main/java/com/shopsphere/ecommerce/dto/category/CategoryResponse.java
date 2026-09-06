@@ -1,4 +1,4 @@
-package com.shopsphere.ecommerce.dto;
+package com.shopsphere.ecommerce.dto.category;
 
 public class CategoryResponse {
     private Long id;

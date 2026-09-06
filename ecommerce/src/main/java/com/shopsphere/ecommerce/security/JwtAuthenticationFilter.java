@@ -59,6 +59,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         User user = userRepository.findByEmail(email)
                 .orElse(null);
 
+        System.out.println("USER = " + user);
+        System.out.println("ACTIVE = " + (user != null ? user.getActive() : null));
+        System.out.println(
+                "BEFORE AUTH = " +
+                        SecurityContextHolder.getContext().getAuthentication()
+        );
+
 
         if (user != null
                 && user.getActive()
@@ -80,7 +87,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         }
 
-        filterChain.doFilter(request,response);
+        System.out.println(
+                "AUTH = " +
+                        SecurityContextHolder.getContext().getAuthentication()
+        );
+
+        filterChain.doFilter(request, response);
 
 
     }

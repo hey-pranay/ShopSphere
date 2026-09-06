@@ -1,7 +1,7 @@
 package com.shopsphere.ecommerce.service;
 
-import com.shopsphere.ecommerce.dto.CategoryRequest;
-import com.shopsphere.ecommerce.dto.CategoryResponse;
+import com.shopsphere.ecommerce.dto.category.CategoryRequest;
+import com.shopsphere.ecommerce.dto.category.CategoryResponse;
 import com.shopsphere.ecommerce.entity.Category;
 import com.shopsphere.ecommerce.exception.CategoryInUseException;
 import com.shopsphere.ecommerce.exception.CategoryNotFoundException;

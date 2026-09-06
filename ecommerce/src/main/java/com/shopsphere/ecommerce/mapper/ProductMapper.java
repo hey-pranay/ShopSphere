@@ -1,6 +1,6 @@
 package com.shopsphere.ecommerce.mapper;
 
-import com.shopsphere.ecommerce.dto.ProductResponse;
+import com.shopsphere.ecommerce.dto.product.ProductResponse;
 import com.shopsphere.ecommerce.entity.Product;
 import org.springframework.stereotype.Component;
 
