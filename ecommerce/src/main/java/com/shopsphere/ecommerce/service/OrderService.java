@@ -78,6 +78,16 @@ public class OrderService {
                     )
             );
 
+
+            // optimistic locking race condition
+            // to test the concurrency exception (2 users placing order at the same time when stock = 1)
+//            try {
+//                Thread.sleep(5000);
+//            } catch (InterruptedException e) {
+//                Thread.currentThread().interrupt();
+//                throw new RuntimeException(e);
+//            }
+
             if (!product.getActive()) {
                 throw new ProductUnavailableException(
                         "Product with id " + product.getId() + " is not available"
