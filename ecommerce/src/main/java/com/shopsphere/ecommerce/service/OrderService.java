@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class OrderService {
@@ -54,11 +56,22 @@ public class OrderService {
     }
 
 
-
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
 
         User user = getAuthenticatedUser();
+
+//        Detect duplicate products
+        Set<Long> productIds = new HashSet<>();
+
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            if (!productIds.add(itemRequest.getProductId())) {
+                throw new DuplicateOrderItemException(
+                        "Product with id " + itemRequest.getProductId()
+                                + " appears more than once in the order"
+                );
+            }
+        }
 
         Order order = new Order();
 
@@ -178,13 +191,20 @@ public class OrderService {
             );
         }
 
+//        for (OrderItem item : order.getItems()) {
+//
+//            Product product = item.getProduct();
+//
+//            product.setStockQuantity(
+//                    product.getStockQuantity()
+//                            + item.getQuantity()
+//            );
+//        }
+
         for (OrderItem item : order.getItems()) {
-
-            Product product = item.getProduct();
-
-            product.setStockQuantity(
-                    product.getStockQuantity()
-                            + item.getQuantity()
+            productRepository.increaseStock(
+                    item.getProduct().getId(),
+                    item.getQuantity()
             );
         }
 

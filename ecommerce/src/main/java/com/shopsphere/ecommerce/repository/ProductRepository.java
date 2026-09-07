@@ -15,8 +15,7 @@ import java.math.BigDecimal;
 @Repository
 public interface ProductRepository
         extends JpaRepository<Product, Long>,
-        JpaSpecificationExecutor<Product>
-{
+        JpaSpecificationExecutor<Product> {
 
     Page<Product> findByNameContainingIgnoreCase(
             String keyword,
@@ -40,6 +39,17 @@ public interface ProductRepository
                         AND p.stockQuantity >= :quantity
             """)
     int decreaseStock(
+            @Param("productId") Long productId,
+            @Param("quantity") Integer quantity
+    );
+
+    @Modifying
+    @Query("""
+                      UPDATE Product p
+                      SET p.stockQuantity = p.stockQuantity + :quantity
+                      WHERE p.id = :productId
+            """)
+    int increaseStock(
             @Param("productId") Long productId,
             @Param("quantity") Integer quantity
     );

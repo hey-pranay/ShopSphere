@@ -38,6 +38,9 @@ public class Order {
     )
     private List<OrderItem> items = new ArrayList<>();
 
+    @Version
+    private Long version;
+
     public Order() {
 
     }
@@ -96,5 +99,13 @@ public class Order {
 
     public void setItems(List<OrderItem> items) {
         this.items = items;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }
