@@ -4,10 +4,7 @@ import com.shopsphere.ecommerce.dto.order.CreateOrderRequest;
 import com.shopsphere.ecommerce.dto.order.OrderItemRequest;
 import com.shopsphere.ecommerce.dto.order.OrderResponse;
 import com.shopsphere.ecommerce.entity.*;
-import com.shopsphere.ecommerce.exception.InsufficientStockException;
-import com.shopsphere.ecommerce.exception.InvalidCredentialsException;
-import com.shopsphere.ecommerce.exception.ProductNotFoundException;
-import com.shopsphere.ecommerce.exception.ProductUnavailableException;
+import com.shopsphere.ecommerce.exception.*;
 import com.shopsphere.ecommerce.mapper.OrderMapper;
 import com.shopsphere.ecommerce.repository.OrderRepository;
 import com.shopsphere.ecommerce.repository.ProductRepository;
@@ -18,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class OrderService {
@@ -54,6 +52,8 @@ public class OrderService {
                                 "Authenticated user not found"
                         ));
     }
+
+
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -142,6 +142,56 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         return orderMapper.toResponse(savedOrder);
+    }
+
+
+    @Transactional(readOnly = true) // because we are only reading data
+    public List<OrderResponse> getMyOrders() {
+        User user = getAuthenticatedUser();
+
+        List<Order> orders =
+                orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+
+        return orders.stream()
+                .map(orderMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId) {
+        User user = getAuthenticatedUser();
+
+        Order order = orderRepository
+                .findByIdAndUserId(orderId, user.getId())
+                .orElseThrow(() ->
+                        new OrderNotFoundException(
+                                "Order with id " + orderId + " not found"
+                        )
+                );
+
+        if (order.getStatus() == OrderStatus.SHIPPED
+                || order.getStatus() == OrderStatus.DELIVERED
+                || order.getStatus() == OrderStatus.CANCELLED
+        ) {
+            throw new InvalidOrderStateException(
+                    "Order cannot be cancelled in status " + order.getStatus()
+            );
+        }
+
+        for (OrderItem item : order.getItems()) {
+
+            Product product = item.getProduct();
+
+            product.setStockQuantity(
+                    product.getStockQuantity()
+                            + item.getQuantity()
+            );
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        return orderMapper.toResponse(order);
+
     }
 
 }
