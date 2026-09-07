@@ -94,15 +94,28 @@ public class OrderService {
                 );
             }
 
-            if (product.getStockQuantity() < itemRequest.getQuantity()) {
+//            if (product.getStockQuantity() < itemRequest.getQuantity()) {
+//                throw new InsufficientStockException(
+//                        "Insufficient stock for product with id " + product.getId()
+//                );
+//            }
+//
+//            product.setStockQuantity(
+//                    product.getStockQuantity() - itemRequest.getQuantity()
+//            );
+
+            // atomic repo operation
+            // atomic update
+            int updated = productRepository.decreaseStock(
+                    product.getId(),
+                    itemRequest.getQuantity()
+            );
+
+            if (updated == 0) {
                 throw new InsufficientStockException(
                         "Insufficient stock for product with id " + product.getId()
                 );
             }
-
-            product.setStockQuantity(
-                    product.getStockQuantity() - itemRequest.getQuantity()
-            );
 
             OrderItem orderItem = new OrderItem();
 
