@@ -2,6 +2,7 @@ package com.shopsphere.ecommerce.controller;
 
 import com.shopsphere.ecommerce.dto.order.CreateOrderRequest;
 import com.shopsphere.ecommerce.dto.order.OrderResponse;
+import com.shopsphere.ecommerce.dto.order.OrderStatusUpdateRequest;
 import com.shopsphere.ecommerce.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -37,5 +38,16 @@ public class OrderController {
             @PathVariable Long orderId
     ) {
         return orderService.cancelOrder(orderId);
+    }
+
+    @PatchMapping("/{orderId}/status")
+    public OrderResponse updateOrderStatus(
+            @PathVariable Long orderId,
+            @Valid @RequestBody OrderStatusUpdateRequest request
+    ) {
+        return orderService.updateOrderStatus(
+                orderId,
+                request.getStatus()
+        );
     }
 }

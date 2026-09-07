@@ -215,4 +215,50 @@ public class OrderService {
 
     }
 
+    private boolean isValidTransition(
+            OrderStatus currentStatus,
+            OrderStatus newStatus
+    ) {
+        return switch (currentStatus) {
+
+            case PENDING -> newStatus == OrderStatus.PLACED;
+
+            case PLACED -> newStatus == OrderStatus.CONFIRMED;
+
+            case CONFIRMED -> newStatus == OrderStatus.SHIPPED;
+
+            case SHIPPED -> newStatus == OrderStatus.DELIVERED;
+
+            case DELIVERED, CANCELLED -> false;
+        };
+    }
+
+    @Transactional
+    public OrderResponse updateOrderStatus(
+            Long orderId,
+            OrderStatus newStatus
+    ) {
+
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(
+                                "Order with id " + orderId + " not found"
+                        )
+                );
+
+        OrderStatus currentStatus = order.getStatus();
+
+        if (!isValidTransition(currentStatus, newStatus)) {
+            throw new InvalidOrderStateException(
+                    "Cannot change order status from "
+                            + currentStatus + " to " + newStatus
+            );
+        }
+
+        order.setStatus(newStatus);
+        orderRepository.save(order);
+
+        return orderMapper.toResponse(order);
+    }
+
 }
