@@ -28,6 +28,9 @@ public class OrderItem {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
 
+    @Column(name = "product_name", nullable = false, length = 150)
+    private String productNameSnapshot;
+
     public OrderItem() {
     }
 
@@ -73,5 +76,13 @@ public class OrderItem {
 
     public void setSubtotal(BigDecimal subtotal) {
         this.subtotal = subtotal;
+    }
+
+    public String getProductNameSnapshot() {
+        return productNameSnapshot;
+    }
+
+    public void setProductNameSnapshot(String productNameSnapshot) {
+        this.productNameSnapshot = productNameSnapshot;
     }
 }

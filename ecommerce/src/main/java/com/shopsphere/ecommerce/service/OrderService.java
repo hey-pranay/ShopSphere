@@ -146,6 +146,7 @@ public class OrderService {
 
             orderItem.setUnitPrice(unitPrice);
             orderItem.setSubtotal(subtotal);
+            orderItem.setProductNameSnapshot(product.getName());
 
             order.getItems().add(orderItem);
         }
