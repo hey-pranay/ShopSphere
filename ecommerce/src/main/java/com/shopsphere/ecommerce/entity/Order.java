@@ -46,6 +46,8 @@ public class Order {
     )
     private Payment payment;
 
+    @Column(name = "payment_expires_at" ,nullable = false)
+    private LocalDateTime paymentExpiresAt;
 
     public Order() {
 
@@ -120,5 +122,13 @@ public class Order {
 
     public void setPayment(Payment payment) {
         this.payment = payment;
+    }
+
+    public LocalDateTime getPaymentExpiresAt() {
+        return paymentExpiresAt;
+    }
+
+    public void setPaymentExpiresAt(LocalDateTime paymentExpiresAt) {
+        this.paymentExpiresAt = paymentExpiresAt;
     }
 }

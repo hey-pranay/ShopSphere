@@ -194,5 +194,43 @@ public class PaymentService {
         return paymentMapper.toResponse(savedPayment);
     }
 
+    @Transactional
+    public void expirePaymentForOrder(Long orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment for order " + orderId + " not found"
+                        )
+                );
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            return;
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new OrderNotFoundException(
+                                "Order with id " + orderId + " not found"
+                        )
+                );
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            return;
+        }
+
+        payment.setStatus(PaymentStatus.EXPIRED);
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        for (OrderItem item : order.getItems()) {
+            productRepository.increaseStock(
+                    item.getProduct().getId(),
+                    item.getQuantity()
+            );
+        }
+
+        paymentRepository.save(payment);
+    }
+
 
 }

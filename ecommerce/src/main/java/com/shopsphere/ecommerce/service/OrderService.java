@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -58,6 +59,25 @@ public class OrderService {
                         ));
     }
 
+    private void cancelOrderInternally(Order order) {
+        if (order.getStatus() == OrderStatus.SHIPPED
+                || order.getStatus() == OrderStatus.DELIVERED
+                || order.getStatus() == OrderStatus.CANCELLED
+        ) {
+            throw new InvalidOrderStateException(
+                    "Order cannot be cancelled in status " + order.getStatus()
+            );
+        }
+        order.setStatus(OrderStatus.CANCELLED);
+
+        for (OrderItem item : order.getItems()) {
+            productRepository.increaseStock(
+                    item.getProduct().getId(),
+                    item.getQuantity()
+            );
+        }
+
+    }
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -81,7 +101,9 @@ public class OrderService {
         order.setUser(user);
         order.setStatus(OrderStatus.PENDING);
         order.setTotalAmount(BigDecimal.ZERO);
-
+        order.setPaymentExpiresAt(
+                LocalDateTime.now().plusMinutes(1)
+        );
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (OrderItemRequest itemRequest : request.getItems()) {
@@ -177,6 +199,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse cancelOrder(Long orderId) {
+
         User user = getAuthenticatedUser();
 
         Order order = orderRepository
@@ -187,33 +210,7 @@ public class OrderService {
                         )
                 );
 
-        if (order.getStatus() == OrderStatus.SHIPPED
-                || order.getStatus() == OrderStatus.DELIVERED
-                || order.getStatus() == OrderStatus.CANCELLED
-        ) {
-            throw new InvalidOrderStateException(
-                    "Order cannot be cancelled in status " + order.getStatus()
-            );
-        }
-
-//        for (OrderItem item : order.getItems()) {
-//
-//            Product product = item.getProduct();
-//
-//            product.setStockQuantity(
-//                    product.getStockQuantity()
-//                            + item.getQuantity()
-//            );
-//        }
-
-        for (OrderItem item : order.getItems()) {
-            productRepository.increaseStock(
-                    item.getProduct().getId(),
-                    item.getQuantity()
-            );
-        }
-
-        order.setStatus(OrderStatus.CANCELLED);
+        cancelOrderInternally(order);
 
         return orderMapper.toResponse(order);
 
@@ -264,5 +261,22 @@ public class OrderService {
 
         return orderMapper.toResponse(order);
     }
+
+    @Transactional
+    public void cancelExpiredOrder(Order order) {
+        if (order.getStatus() != OrderStatus.PENDING) {
+            return;
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        for (OrderItem item : order.getItems()) {
+            productRepository.increaseStock(
+                    item.getProduct().getId(),
+                    item.getQuantity()
+            );
+        }
+    }
+
 
 }
