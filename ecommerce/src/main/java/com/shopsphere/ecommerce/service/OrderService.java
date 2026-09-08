@@ -26,18 +26,21 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
+    private final PaymentService paymentService;
 
 
     public OrderService(
             OrderRepository orderRepository,
             ProductRepository productRepository,
             UserRepository userRepository,
-            OrderMapper orderMapper
+            OrderMapper orderMapper,
+            PaymentService paymentService
     ) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.orderMapper = orderMapper;
+        this.paymentService = paymentService;
     }
 
     public User getAuthenticatedUser() {
@@ -155,6 +158,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
+        paymentService.createPayment(savedOrder);
         return orderMapper.toResponse(savedOrder);
     }
 

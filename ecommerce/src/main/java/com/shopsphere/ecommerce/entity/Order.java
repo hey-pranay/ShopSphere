@@ -1,7 +1,6 @@
 package com.shopsphere.ecommerce.entity;
 
 import jakarta.persistence.*;
-import org.w3c.dom.stylesheets.LinkStyle;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -41,6 +40,13 @@ public class Order {
     @Version
     private Long version;
 
+    @OneToOne(
+            mappedBy = "order",
+            fetch = FetchType.LAZY
+    )
+    private Payment payment;
+
+
     public Order() {
 
     }
@@ -59,7 +65,6 @@ public class Order {
     public Long getId() {
         return id;
     }
-
 
     public User getUser() {
         return user;
@@ -107,5 +112,13 @@ public class Order {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public Payment getPayment() {
+        return payment;
+    }
+
+    public void setPayment(Payment payment) {
+        this.payment = payment;
     }
 }
