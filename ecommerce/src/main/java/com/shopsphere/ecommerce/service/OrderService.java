@@ -106,7 +106,7 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
         order.setTotalAmount(BigDecimal.ZERO);
         order.setPaymentExpiresAt(
-                LocalDateTime.now().plusMinutes(1)
+                LocalDateTime.now().plusMinutes(15)
         );
         BigDecimal totalAmount = BigDecimal.ZERO;
 

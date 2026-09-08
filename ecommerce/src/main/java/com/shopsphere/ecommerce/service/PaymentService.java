@@ -5,15 +5,14 @@ import com.shopsphere.ecommerce.dto.payment.PaymentResponse;
 import com.shopsphere.ecommerce.entity.*;
 import com.shopsphere.ecommerce.exception.*;
 import com.shopsphere.ecommerce.mapper.PaymentMapper;
-import com.shopsphere.ecommerce.repository.OrderRepository;
-import com.shopsphere.ecommerce.repository.PaymentRepository;
-import com.shopsphere.ecommerce.repository.ProductRepository;
-import com.shopsphere.ecommerce.repository.UserRepository;
+import com.shopsphere.ecommerce.repository.*;
+import jakarta.persistence.EntityManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -24,20 +23,25 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-
+    private final PaymentAttemptRepository paymentAttemptRepository;
+    private final EntityManager entityManager;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             PaymentMapper paymentMapper,
             OrderRepository orderRepository,
             ProductRepository productRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            PaymentAttemptRepository paymentAttemptRepository,
+            EntityManager entityManager
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentMapper = paymentMapper;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.paymentAttemptRepository = paymentAttemptRepository;
+        this.entityManager = entityManager;
     }
 
     private User getAuthenticatedUser() {
@@ -109,72 +113,6 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentResponse processPayment(
-            Long orderId,
-            PaymentProcessRequest request
-    ) {
-
-        Order order = getAuthorizedOrder(orderId);
-
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new InvalidOrderStateException(
-                    "Payment cannot be processed for order with status "
-                            + order.getStatus()
-            );
-        }
-
-        String transactionId = UUID.randomUUID().toString();
-
-        if (request.getSuccess()) {
-
-            int updated = paymentRepository.markPaymentSuccess(
-                    orderId,
-                    transactionId
-            );
-
-            if (updated == 0) {
-                throw new InvalidPaymentStatusException(
-                        "Payment has already been processed"
-                );
-            }
-
-            order.setStatus(OrderStatus.PLACED);
-
-        } else {
-
-            int updated = paymentRepository.markPaymentFailed(
-                    orderId
-            );
-
-            if (updated == 0) {
-                throw new InvalidPaymentStatusException(
-                        "Payment has already been processed"
-                );
-            }
-
-            order.setStatus(OrderStatus.CANCELLED);
-
-            for (OrderItem item : order.getItems()) {
-
-                productRepository.increaseStock(
-                        item.getProduct().getId(),
-                        item.getQuantity()
-                );
-            }
-        }
-
-        Payment savedPayment = paymentRepository
-                .findByOrderId(orderId)
-                .orElseThrow(() ->
-                        new PaymentNotFoundException(
-                                "Payment for order " + orderId + " not found"
-                        )
-                );
-
-        return paymentMapper.toResponse(savedPayment);
-    }
-
-    @Transactional
     public PaymentResponse refundPayment(Long orderId) {
         Order order = getAuthorizedOrder(orderId);
 
@@ -214,4 +152,135 @@ public class PaymentService {
     }
 
 
+    @Transactional
+    public PaymentResponse processPayment(
+            Long orderId,
+            PaymentProcessRequest request
+    ) {
+
+        Order order = getAuthorizedOrder(orderId);
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment for order " + orderId + " not found"
+                        )
+                );
+
+        // check whether this exact payment attempt already exists
+        Optional<PaymentAttempt> existingAttempt =
+                paymentAttemptRepository.findByPaymentIdAndIdempotencyKey(
+                        payment.getId(),
+                        request.getIdempotencyKey()
+                );
+
+        if (existingAttempt.isPresent()) {
+            PaymentAttempt attempt = existingAttempt.get();
+
+            if (attempt.getStatus() == PaymentStatus.PROCESSING) {
+                throw new InvalidPaymentStatusException(
+                        "Payment attempt is still being processed"
+                );
+            }
+
+            payment.setStatus(attempt.getStatus());
+            payment.setTransactionId(attempt.getTransactionId());
+
+            return paymentMapper.toResponse(payment);
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new InvalidOrderStateException(
+                    "Payment cannot be processed for order with status "
+                            + order.getStatus()
+            );
+        }
+
+        PaymentAttempt attempt = new PaymentAttempt();
+
+        attempt.setPayment(payment);
+        attempt.setIdempotencyKey(request.getIdempotencyKey());
+        attempt.setAmount(payment.getAmount());
+        attempt.setStatus(PaymentStatus.PROCESSING);
+
+
+        paymentAttemptRepository.saveAndFlush(attempt);
+//        try {
+//            paymentAttemptRepository.saveAndFlush(attempt);
+//        } catch (DataIntegrityViolationException ex) {
+//            PaymentAttempt concurrentAttempt =
+//                    paymentAttemptRepository
+//                            .findByPaymentIdAndIdempotencyKey(
+//                                    payment.getId(),
+//                                    request.getIdempotencyKey()
+//                            )
+//                            .orElseThrow(() ->
+//                                    new InvalidPaymentStatusException(
+//                                            "Payment attempt already exists"
+//                                    ));
+//
+//            if (concurrentAttempt.getStatus() == PaymentStatus.PROCESSING) {
+//                throw new InvalidPaymentStatusException(
+//                        "Payment attempt is still being processed"
+//                );
+//            }
+//
+//            payment.setStatus(concurrentAttempt.getStatus());
+//            payment.setTransactionId(
+//                    concurrentAttempt.getTransactionId()
+//            );
+//
+//            return paymentMapper.toResponse(payment);
+//        }
+
+        String transactionId = UUID.randomUUID().toString();
+
+        if (request.getSuccess()) {
+
+            int updated = paymentRepository.markPaymentSuccess(
+                    orderId,
+                    transactionId
+            );
+
+            if (updated == 0) {
+                throw new InvalidPaymentStatusException(
+                        "Payment has already been processed"
+                );
+            }
+
+            attempt.setStatus(PaymentStatus.SUCCESS);
+            attempt.setTransactionId(transactionId);
+
+            order.setStatus(OrderStatus.PLACED);
+
+        } else {
+
+            int updated = paymentRepository.markPaymentFailed(
+                    orderId
+            );
+
+            if (updated == 0) {
+                throw new InvalidPaymentStatusException(
+                        "Payment has already been processed"
+                );
+            }
+
+            attempt.setStatus(PaymentStatus.FAILED);
+
+            order.setStatus(OrderStatus.CANCELLED);
+
+            for (OrderItem item : order.getItems()) {
+
+                productRepository.increaseStock(
+                        item.getProduct().getId(),
+                        item.getQuantity()
+                );
+            }
+        }
+
+
+        entityManager.refresh(payment);
+
+        return paymentMapper.toResponse(payment);
+    }
 }
