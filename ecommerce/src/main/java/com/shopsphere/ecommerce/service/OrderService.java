@@ -7,6 +7,7 @@ import com.shopsphere.ecommerce.entity.*;
 import com.shopsphere.ecommerce.exception.*;
 import com.shopsphere.ecommerce.mapper.OrderMapper;
 import com.shopsphere.ecommerce.repository.OrderRepository;
+import com.shopsphere.ecommerce.repository.PaymentRepository;
 import com.shopsphere.ecommerce.repository.ProductRepository;
 import com.shopsphere.ecommerce.repository.UserRepository;
 import org.springframework.security.core.Authentication;
@@ -28,6 +29,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
 
 
     public OrderService(
@@ -35,13 +37,15 @@ public class OrderService {
             ProductRepository productRepository,
             UserRepository userRepository,
             OrderMapper orderMapper,
-            PaymentService paymentService
+            PaymentService paymentService,
+            PaymentRepository paymentRepository
     ) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.orderMapper = orderMapper;
         this.paymentService = paymentService;
+        this.paymentRepository = paymentRepository;
     }
 
     private User getAuthenticatedUser() {
@@ -210,7 +214,25 @@ public class OrderService {
                         )
                 );
 
+        Payment payment = paymentRepository
+                .findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment for order " + orderId + " not found"
+                        )
+                );
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new InvalidPaymentStatusException(
+                    "Payment cannot be cancelled in status "
+                            + payment.getStatus()
+            );
+        }
+
         cancelOrderInternally(order);
+
+        payment.setStatus(PaymentStatus.CANCELLED);
+        paymentRepository.save(payment);
 
         return orderMapper.toResponse(order);
 
@@ -222,7 +244,7 @@ public class OrderService {
     ) {
         return switch (currentStatus) {
 
-            case PENDING -> newStatus == OrderStatus.PLACED;
+            case PENDING, DELIVERED, CANCELLED -> false;
 
             case PLACED -> newStatus == OrderStatus.CONFIRMED;
 
@@ -230,7 +252,6 @@ public class OrderService {
 
             case SHIPPED -> newStatus == OrderStatus.DELIVERED;
 
-            case DELIVERED, CANCELLED -> false;
         };
     }
 
@@ -262,21 +283,6 @@ public class OrderService {
         return orderMapper.toResponse(order);
     }
 
-    @Transactional
-    public void cancelExpiredOrder(Order order) {
-        if (order.getStatus() != OrderStatus.PENDING) {
-            return;
-        }
-
-        order.setStatus(OrderStatus.CANCELLED);
-
-        for (OrderItem item : order.getItems()) {
-            productRepository.increaseStock(
-                    item.getProduct().getId(),
-                    item.getQuantity()
-            );
-        }
-    }
 
 
 }

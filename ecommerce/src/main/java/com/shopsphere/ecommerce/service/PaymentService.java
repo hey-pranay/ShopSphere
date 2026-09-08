@@ -113,44 +113,63 @@ public class PaymentService {
             Long orderId,
             PaymentProcessRequest request
     ) {
-        // TODO : What happens to unpaid orders?
 
         Order order = getAuthorizedOrder(orderId);
 
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new PaymentNotFoundException(
-                                "Payment for order " + orderId + " not found"
-                        )
-                );
-
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new InvalidOrderStateException(
-                    "Payment cannot be processed for order with status " + order.getStatus()
+                    "Payment cannot be processed for order with status "
+                            + order.getStatus()
             );
         }
 
-        if (payment.getStatus() != PaymentStatus.PENDING) {
-            throw new InvalidPaymentStatusException(
-                    "Payment has already been processed"
-            );
-        }
+        String transactionId = UUID.randomUUID().toString();
 
         if (request.getSuccess()) {
-            payment.setStatus(PaymentStatus.SUCCESS);
-            payment.setTransactionId(UUID.randomUUID().toString());
+
+            int updated = paymentRepository.markPaymentSuccess(
+                    orderId,
+                    transactionId
+            );
+
+            if (updated == 0) {
+                throw new InvalidPaymentStatusException(
+                        "Payment has already been processed"
+                );
+            }
+
             order.setStatus(OrderStatus.PLACED);
+
         } else {
-            payment.setStatus(PaymentStatus.FAILED);
+
+            int updated = paymentRepository.markPaymentFailed(
+                    orderId
+            );
+
+            if (updated == 0) {
+                throw new InvalidPaymentStatusException(
+                        "Payment has already been processed"
+                );
+            }
+
             order.setStatus(OrderStatus.CANCELLED);
 
             for (OrderItem item : order.getItems()) {
-                Long productId = item.getProduct().getId();
-                Integer quantity = item.getQuantity();
-                productRepository.increaseStock(productId, quantity);
+
+                productRepository.increaseStock(
+                        item.getProduct().getId(),
+                        item.getQuantity()
+                );
             }
         }
 
-        Payment savedPayment = paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository
+                .findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment for order " + orderId + " not found"
+                        )
+                );
 
         return paymentMapper.toResponse(savedPayment);
     }
@@ -192,44 +211,6 @@ public class PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         return paymentMapper.toResponse(savedPayment);
-    }
-
-    @Transactional
-    public void expirePaymentForOrder(Long orderId) {
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() ->
-                        new PaymentNotFoundException(
-                                "Payment for order " + orderId + " not found"
-                        )
-                );
-
-        if (payment.getStatus() != PaymentStatus.PENDING) {
-            return;
-        }
-
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() ->
-                        new OrderNotFoundException(
-                                "Order with id " + orderId + " not found"
-                        )
-                );
-
-        if (order.getStatus() != OrderStatus.PENDING) {
-            return;
-        }
-
-        payment.setStatus(PaymentStatus.EXPIRED);
-
-        order.setStatus(OrderStatus.CANCELLED);
-
-        for (OrderItem item : order.getItems()) {
-            productRepository.increaseStock(
-                    item.getProduct().getId(),
-                    item.getQuantity()
-            );
-        }
-
-        paymentRepository.save(payment);
     }
 
 

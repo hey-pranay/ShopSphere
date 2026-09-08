@@ -23,4 +23,26 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             """)
     int expirePayment(@Param("orderId") Long orderId);
 
+
+    @Modifying
+    @Query("""
+                UPDATE Payment p
+                SET p.status = com.shopsphere.ecommerce.entity.PaymentStatus.SUCCESS,
+                    p.transactionId = :transactionId
+                WHERE p.order.id = :orderId
+                  AND p.status = com.shopsphere.ecommerce.entity.PaymentStatus.PENDING
+            """)
+    int markPaymentSuccess(
+            @Param("orderId") Long orderId,
+            @Param("transactionId") String transactionId
+    );
+
+    @Modifying
+    @Query("""
+                UPDATE Payment p
+                SET p.status = com.shopsphere.ecommerce.entity.PaymentStatus.FAILED
+                WHERE p.order.id = :orderId
+                  AND p.status = com.shopsphere.ecommerce.entity.PaymentStatus.PENDING
+            """)
+    int markPaymentFailed(@Param("orderId") Long orderId);
 }
