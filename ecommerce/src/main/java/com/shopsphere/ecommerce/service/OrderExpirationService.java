@@ -1,11 +1,14 @@
 package com.shopsphere.ecommerce.service;
 
 import com.shopsphere.ecommerce.entity.Order;
+import com.shopsphere.ecommerce.entity.OrderItem;
 import com.shopsphere.ecommerce.entity.OrderStatus;
-import com.shopsphere.ecommerce.entity.Payment;
-import com.shopsphere.ecommerce.entity.PaymentStatus;
+import com.shopsphere.ecommerce.exception.InvalidOrderStateException;
+import com.shopsphere.ecommerce.exception.OrderNotFoundException;
 import com.shopsphere.ecommerce.repository.OrderRepository;
 import com.shopsphere.ecommerce.repository.PaymentRepository;
+import com.shopsphere.ecommerce.repository.ProductRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,23 +19,27 @@ import java.util.List;
 @Service
 public class OrderExpirationService {
 
+    private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
-    private final OrderService orderService;
+    private final EntityManager entityManager;
 
     public OrderExpirationService(
             OrderRepository orderRepository,
             PaymentRepository paymentRepository,
-            OrderService orderService
+            ProductRepository productRepository,
+            EntityManager entityManager
     ) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
-        this.orderService = orderService;
+        this.entityManager = entityManager;
+        this.productRepository = productRepository;
     }
 
-    @Scheduled(fixedRate = 60000) // every 60sec
+    @Scheduled(fixedRate = 60000)
     @Transactional
     public void expirePendingOrders() {
+
         List<Order> expiredOrders =
                 orderRepository.findExpiredOrders(
                         OrderStatus.PENDING,
@@ -41,22 +48,48 @@ public class OrderExpirationService {
 
         for (Order order : expiredOrders) {
 
-            Payment payment = paymentRepository
-                    .findByOrderId(order.getId())
-                    .orElse(null);
+            // Atomically claim the payment:
+            // PENDING → EXPIRED
+            int paymentUpdated = paymentRepository.expirePayment(
+                    order.getId()
+            );
 
-            if (payment == null) {
+            if (paymentUpdated == 0) {
+                // Payment was already processed by another transaction
                 continue;
             }
 
-            if (payment.getStatus() != PaymentStatus.PENDING) {
-                continue;
+            // Atomically claim the order:
+            // PENDING → CANCELLED
+            int orderUpdated = orderRepository.cancelExpiredOrder(
+                    order.getId(),
+                    LocalDateTime.now()
+            );
+
+            if (orderUpdated == 0) {
+                throw new InvalidOrderStateException(
+                        "Order " + order.getId()
+                                + " could not be expired because its status changed"
+                );
             }
 
-            payment.setStatus(PaymentStatus.EXPIRED);
-            paymentRepository.save(payment);
+            entityManager.clear();
 
-            orderService.cancelExpiredOrder(order);
+            Order cancelledOrder = orderRepository.findById(order.getId())
+                    .orElseThrow(() ->
+                            new OrderNotFoundException(
+                                    "Order with id " + order.getId() + " not found"
+                            )
+                    );
+
+            // Restore reserved stock
+            for (OrderItem item : cancelledOrder.getItems()) {
+
+                productRepository.increaseStock(
+                        item.getProduct().getId(),
+                        item.getQuantity()
+                );
+            }
         }
     }
 

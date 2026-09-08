@@ -3,6 +3,7 @@ package com.shopsphere.ecommerce.repository;
 import com.shopsphere.ecommerce.entity.Order;
 import com.shopsphere.ecommerce.entity.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -27,6 +28,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """)
     List<Order> findExpiredOrders(
             @Param("status") OrderStatus status,
+            @Param("now") LocalDateTime now
+    );
+
+    @Modifying
+    @Query("""
+                UPDATE Order o
+                SET o.status = com.shopsphere.ecommerce.entity.OrderStatus.CANCELLED
+                WHERE o.id = :orderId
+                  AND o.status = com.shopsphere.ecommerce.entity.OrderStatus.PENDING
+                  AND o.paymentExpiresAt <= :now
+            """)
+    int cancelExpiredOrder(
+            @Param("orderId") Long orderId,
             @Param("now") LocalDateTime now
     );
 
