@@ -43,7 +43,7 @@ public class OrderService {
         this.paymentService = paymentService;
     }
 
-    public User getAuthenticatedUser() {
+    private User getAuthenticatedUser() {
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();

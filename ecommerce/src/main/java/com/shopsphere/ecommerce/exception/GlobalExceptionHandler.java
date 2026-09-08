@@ -212,11 +212,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateOrderItemException.class)
     public ResponseEntity<ApiErrorResponse> handleDuplicateOrderItem(
-            DuplicateOrderItemException ex
+            DuplicateOrderItemException exception
     ) {
         ApiErrorResponse response = new ApiErrorResponse(
                 HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
+                exception.getMessage(),
                 LocalDateTime.now(),
                 null
         );
@@ -240,6 +240,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(error);
+    }
+
+
+    @ExceptionHandler(InvalidPaymentStatusException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidPaymentStatusException(
+            InvalidPaymentStatusException exception
+    ) {
+        ApiErrorResponse response = new ApiErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                exception.getMessage(),
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
