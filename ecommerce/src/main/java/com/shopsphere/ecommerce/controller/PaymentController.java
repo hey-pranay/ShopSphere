@@ -32,4 +32,11 @@ public class PaymentController {
     ) {
         return paymentService.processPayment(orderId, request);
     }
+
+    @PatchMapping("/{orderId}/payment/refund")
+    public PaymentResponse refundPayment(
+            @PathVariable Long orderId
+    ) {
+        return paymentService.refundPayment(orderId);
+    }
 }

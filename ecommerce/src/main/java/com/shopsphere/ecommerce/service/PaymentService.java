@@ -153,8 +153,45 @@ public class PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         return paymentMapper.toResponse(savedPayment);
+    }
 
+    @Transactional
+    public PaymentResponse refundPayment(Long orderId) {
+        Order order = getAuthorizedOrder(orderId);
 
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment for order " + orderId + " not found"
+                        )
+                );
+
+        if (order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new InvalidOrderStateException(
+                    "Order cannot be refunded in status " + order.getStatus()
+            );
+        }
+
+        if (payment.getStatus() != PaymentStatus.SUCCESS) {
+            throw new InvalidPaymentStatusException(
+                    "Payment cannot be refunded in status " + payment.getStatus()
+            );
+        }
+
+        payment.setStatus(PaymentStatus.REFUNDED);
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        for (OrderItem item : order.getItems()) {
+            productRepository.increaseStock(
+                    item.getProduct().getId(),
+                    item.getQuantity()
+            );
+        }
+
+        Payment savedPayment = paymentRepository.save(payment);
+
+        return paymentMapper.toResponse(savedPayment);
     }
 
 
