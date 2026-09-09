@@ -1,6 +1,7 @@
 package com.shopsphere.ecommerce.service;
 
 import com.shopsphere.ecommerce.dto.payment.PaymentProcessRequest;
+import com.shopsphere.ecommerce.dto.payment.PaymentProviderResult;
 import com.shopsphere.ecommerce.dto.payment.PaymentResponse;
 import com.shopsphere.ecommerce.entity.*;
 import com.shopsphere.ecommerce.exception.*;
@@ -233,10 +234,12 @@ public class PaymentService {
                 }
 
                 // Payment is still pending, so we must ask the provider
-                PaymentStatus providerStatus =
+                PaymentProviderResult providerResult =
                         paymentProvider.verifyPayment(
                                 attempt.getIdempotencyKey()
                         );
+
+                PaymentStatus providerStatus = providerResult.getStatus();
 
                 if (providerStatus == PaymentStatus.SUCCESS) {
 

@@ -1,5 +1,6 @@
 package com.shopsphere.ecommerce.service;
 
+import com.shopsphere.ecommerce.dto.payment.PaymentProviderResult;
 import com.shopsphere.ecommerce.entity.OrderStatus;
 import com.shopsphere.ecommerce.entity.PaymentAttempt;
 import com.shopsphere.ecommerce.entity.PaymentStatus;
@@ -62,10 +63,12 @@ public class PaymentAttemptRecoveryService {
 
         for (PaymentAttempt attempt : unknownAttempts) {
 
-            PaymentStatus providerStatus =
+            PaymentProviderResult providerResult =
                     paymentProvider.verifyPayment(
                             attempt.getIdempotencyKey()
                     );
+
+            PaymentStatus providerStatus = providerResult.getStatus();
 
             System.out.println(
                     "Recovery check: attempt="
