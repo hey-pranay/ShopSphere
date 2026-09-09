@@ -1,7 +1,13 @@
 package com.shopsphere.ecommerce.service;
 
+import com.shopsphere.ecommerce.entity.OrderStatus;
 import com.shopsphere.ecommerce.entity.PaymentAttempt;
+import com.shopsphere.ecommerce.entity.PaymentStatus;
+import com.shopsphere.ecommerce.exception.InvalidPaymentStatusException;
+import com.shopsphere.ecommerce.repository.OrderRepository;
 import com.shopsphere.ecommerce.repository.PaymentAttemptRepository;
+import com.shopsphere.ecommerce.repository.PaymentRepository;
+import com.shopsphere.ecommerce.repository.ProductRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,16 +19,31 @@ import java.util.List;
 public class PaymentAttemptRecoveryService {
 
     private final PaymentAttemptRepository paymentAttemptRepository;
+    private final PaymentProvider paymentProvider;
+    private final PaymentRepository paymentRepository;
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
 
     public PaymentAttemptRecoveryService(
-            PaymentAttemptRepository paymentAttemptRepository
+            PaymentAttemptRepository paymentAttemptRepository,
+            PaymentProvider paymentProvider,
+            PaymentRepository paymentRepository,
+            OrderRepository orderRepository,
+            ProductRepository productRepository
+
     ) {
         this.paymentAttemptRepository = paymentAttemptRepository;
+        this.paymentProvider = paymentProvider;
+        this.paymentRepository = paymentRepository;
+        this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
     }
 
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void recoverStuckAttempts() {
+
+        // 1. Convert timed-out PROCESSING attempts to UNKNOWN
         List<PaymentAttempt> stuckAttempts =
                 paymentAttemptRepository.findStuckProcessingAttempts(
                         LocalDateTime.now()
@@ -33,6 +54,63 @@ public class PaymentAttemptRecoveryService {
             paymentAttemptRepository.markAttemptUnknown(
                     attempt.getId()
             );
+        }
+
+        // 2. Find UNKNOWN attempts that need provider verification
+        List<PaymentAttempt> unknownAttempts =
+                paymentAttemptRepository.findUnknownAttempts();
+
+        for (PaymentAttempt attempt : unknownAttempts) {
+
+            PaymentStatus providerStatus =
+                    paymentProvider.verifyPayment(
+                            attempt.getIdempotencyKey()
+                    );
+
+            System.out.println(
+                    "Recovery check: attempt="
+                            + attempt.getId()
+                            + ", providerStatus="
+                            + providerStatus
+            );
+
+            if (providerStatus == PaymentStatus.FAILED) {
+
+                Long orderId =
+                        attempt.getPayment()
+                                .getOrder()
+                                .getId();
+
+                int paymentUpdated =
+                        paymentRepository.markPaymentFailed(orderId);
+
+                if (paymentUpdated == 0) {
+                    continue;
+                }
+
+                int attemptUpdated =
+                        paymentAttemptRepository.markUnknownAttemptFailed(
+                                attempt.getId()
+                        );
+
+                if (attemptUpdated == 0) {
+                    throw new InvalidPaymentStatusException(
+                            "Payment attempt was already resolved"
+                    );
+                }
+
+                var order = attempt.getPayment().getOrder();
+
+                order.setStatus(OrderStatus.CANCELLED);
+
+                for (var item : order.getItems()) {
+
+                    productRepository.increaseStock(
+                            item.getProduct().getId(),
+                            item.getQuantity()
+                    );
+                }
+            }
         }
     }
 

@@ -6,6 +6,7 @@ import com.shopsphere.ecommerce.entity.OrderStatus;
 import com.shopsphere.ecommerce.exception.InvalidOrderStateException;
 import com.shopsphere.ecommerce.exception.OrderNotFoundException;
 import com.shopsphere.ecommerce.repository.OrderRepository;
+import com.shopsphere.ecommerce.repository.PaymentAttemptRepository;
 import com.shopsphere.ecommerce.repository.PaymentRepository;
 import com.shopsphere.ecommerce.repository.ProductRepository;
 import jakarta.persistence.EntityManager;
@@ -23,17 +24,21 @@ public class OrderExpirationService {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final EntityManager entityManager;
+    private final PaymentAttemptRepository paymentAttemptRepository;
+
 
     public OrderExpirationService(
             OrderRepository orderRepository,
             PaymentRepository paymentRepository,
             ProductRepository productRepository,
-            EntityManager entityManager
+            EntityManager entityManager,
+            PaymentAttemptRepository paymentAttemptRepository
     ) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.entityManager = entityManager;
         this.productRepository = productRepository;
+        this.paymentAttemptRepository = paymentAttemptRepository;
     }
 
     @Scheduled(fixedRate = 60000)
@@ -47,6 +52,12 @@ public class OrderExpirationService {
                 );
 
         for (Order order : expiredOrders) {
+
+            if (paymentAttemptRepository.existsUnresolvedAttemptForOrder(
+                    order.getId()
+            )) {
+                continue;
+            }
 
             // Atomically claim the payment:
             // PENDING → EXPIRED

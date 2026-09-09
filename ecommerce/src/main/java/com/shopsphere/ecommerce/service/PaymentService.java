@@ -27,6 +27,8 @@ public class PaymentService {
     private final PaymentAttemptRepository paymentAttemptRepository;
     private final EntityManager entityManager;
     private final PaymentAttemptService paymentAttemptService;
+    private final PaymentProvider paymentProvider;
+
 
     public PaymentService(
             PaymentRepository paymentRepository,
@@ -36,7 +38,8 @@ public class PaymentService {
             UserRepository userRepository,
             PaymentAttemptRepository paymentAttemptRepository,
             EntityManager entityManager,
-            PaymentAttemptService paymentAttemptService
+            PaymentAttemptService paymentAttemptService,
+            PaymentProvider paymentProvider
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentMapper = paymentMapper;
@@ -46,6 +49,7 @@ public class PaymentService {
         this.paymentAttemptRepository = paymentAttemptRepository;
         this.entityManager = entityManager;
         this.paymentAttemptService = paymentAttemptService;
+        this.paymentProvider = paymentProvider;
     }
 
     private User getAuthenticatedUser() {
@@ -188,10 +192,128 @@ public class PaymentService {
             }
 
             if (attempt.getStatus() == PaymentStatus.UNKNOWN) {
+
+                // Payment was already completed successfully
+                if (payment.getStatus() == PaymentStatus.SUCCESS) {
+
+                    int attemptUpdated =
+                            paymentAttemptRepository.markUnknownAttemptSuccessful(
+                                    attempt.getId(),
+                                    payment.getTransactionId()
+                            );
+
+                    if (attemptUpdated == 0) {
+                        throw new InvalidPaymentStatusException(
+                                "Payment attempt was already resolved"
+                        );
+                    }
+
+                    entityManager.refresh(payment);
+
+                    return paymentMapper.toResponse(payment);
+                }
+
+                // Payment was already failed
+                if (payment.getStatus() == PaymentStatus.FAILED) {
+
+                    int attemptUpdated =
+                            paymentAttemptRepository.markUnknownAttemptFailed(
+                                    attempt.getId()
+                            );
+
+                    if (attemptUpdated == 0) {
+                        throw new InvalidPaymentStatusException(
+                                "Payment attempt was already resolved"
+                        );
+                    }
+
+                    entityManager.refresh(payment);
+
+                    return paymentMapper.toResponse(payment);
+                }
+
+                // Payment is still pending, so we must ask the provider
+                PaymentStatus providerStatus =
+                        paymentProvider.verifyPayment(
+                                attempt.getIdempotencyKey()
+                        );
+
+                if (providerStatus == PaymentStatus.SUCCESS) {
+
+                    String transactionId = UUID.randomUUID().toString();
+
+                    int paymentUpdated =
+                            paymentRepository.markPaymentSuccess(
+                                    orderId,
+                                    transactionId
+                            );
+
+                    if (paymentUpdated == 0) {
+                        throw new InvalidPaymentStatusException(
+                                "Payment was already processed"
+                        );
+                    }
+
+                    int attemptUpdated =
+                            paymentAttemptRepository.markUnknownAttemptSuccessful(
+                                    attempt.getId(),
+                                    transactionId
+                            );
+
+                    if (attemptUpdated == 0) {
+                        throw new InvalidPaymentStatusException(
+                                "Payment attempt was already resolved"
+                        );
+                    }
+
+                    order.setStatus(OrderStatus.PLACED);
+
+                    entityManager.refresh(payment);
+
+                    return paymentMapper.toResponse(payment);
+                }
+
+                if (providerStatus == PaymentStatus.FAILED) {
+
+                    int paymentUpdated =
+                            paymentRepository.markPaymentFailed(orderId);
+
+                    if (paymentUpdated == 0) {
+                        throw new InvalidPaymentStatusException(
+                                "Payment was already processed"
+                        );
+                    }
+
+                    int attemptUpdated =
+                            paymentAttemptRepository.markUnknownAttemptFailed(
+                                    attempt.getId()
+                            );
+
+                    if (attemptUpdated == 0) {
+                        throw new InvalidPaymentStatusException(
+                                "Payment attempt was already resolved"
+                        );
+                    }
+
+                    order.setStatus(OrderStatus.CANCELLED);
+
+                    for (OrderItem item : order.getItems()) {
+                        productRepository.increaseStock(
+                                item.getProduct().getId(),
+                                item.getQuantity()
+                        );
+                    }
+
+                    entityManager.refresh(payment);
+
+                    return paymentMapper.toResponse(payment);
+                }
+
                 throw new InvalidPaymentStatusException(
-                        "Payment attempt requires payment provider verification"
+                        "Payment provider could not determine payment status"
                 );
             }
+
 
             payment.setStatus(attempt.getStatus());
             payment.setTransactionId(attempt.getTransactionId());

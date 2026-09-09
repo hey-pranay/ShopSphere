@@ -61,4 +61,51 @@ public interface PaymentAttemptRepository extends JpaRepository<PaymentAttempt, 
             @Param("now") LocalDateTime now
     );
 
+    @Modifying
+    @Query("""
+                UPDATE PaymentAttempt pa
+                SET pa.status = com.shopsphere.ecommerce.entity.PaymentStatus.SUCCESS,
+                    pa.transactionId = :transactionId
+                WHERE pa.id = :attemptId
+                  AND pa.status = com.shopsphere.ecommerce.entity.PaymentStatus.UNKNOWN
+            """)
+    int markUnknownAttemptSuccessful(
+            @Param("attemptId") Long attemptId,
+            @Param("transactionId") String transactionId
+    );
+
+    @Modifying
+    @Query("""
+                UPDATE PaymentAttempt pa
+                SET pa.status = com.shopsphere.ecommerce.entity.PaymentStatus.FAILED
+                WHERE pa.id = :attemptId
+                  AND pa.status = com.shopsphere.ecommerce.entity.PaymentStatus.UNKNOWN
+            """)
+    int markUnknownAttemptFailed(
+            @Param("attemptId") Long attemptId
+    );
+
+
+    @Query("""
+                SELECT COUNT(pa) > 0
+                FROM PaymentAttempt pa
+                WHERE pa.payment.order.id = :orderId
+                  AND pa.status IN (
+                      com.shopsphere.ecommerce.entity.PaymentStatus.PROCESSING,
+                      com.shopsphere.ecommerce.entity.PaymentStatus.UNKNOWN
+                  )
+            """)
+    boolean existsUnresolvedAttemptForOrder(
+            @Param("orderId") Long orderId
+    );
+
+    @Query("""
+                SELECT pa
+                FROM PaymentAttempt pa
+                JOIN FETCH pa.payment p
+                JOIN FETCH p.order o
+                WHERE pa.status = com.shopsphere.ecommerce.entity.PaymentStatus.UNKNOWN
+            """)
+    List<PaymentAttempt> findUnknownAttempts();
+
 }
