@@ -7,6 +7,7 @@ import com.shopsphere.ecommerce.exception.*;
 import com.shopsphere.ecommerce.mapper.PaymentMapper;
 import com.shopsphere.ecommerce.repository.*;
 import jakarta.persistence.EntityManager;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final PaymentAttemptRepository paymentAttemptRepository;
     private final EntityManager entityManager;
+    private final PaymentAttemptService paymentAttemptService;
 
     public PaymentService(
             PaymentRepository paymentRepository,
@@ -33,7 +35,8 @@ public class PaymentService {
             ProductRepository productRepository,
             UserRepository userRepository,
             PaymentAttemptRepository paymentAttemptRepository,
-            EntityManager entityManager
+            EntityManager entityManager,
+            PaymentAttemptService paymentAttemptService
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentMapper = paymentMapper;
@@ -42,6 +45,7 @@ public class PaymentService {
         this.userRepository = userRepository;
         this.paymentAttemptRepository = paymentAttemptRepository;
         this.entityManager = entityManager;
+        this.paymentAttemptService = paymentAttemptService;
     }
 
     private User getAuthenticatedUser() {
@@ -183,6 +187,12 @@ public class PaymentService {
                 );
             }
 
+            if (attempt.getStatus() == PaymentStatus.UNKNOWN) {
+                throw new InvalidPaymentStatusException(
+                        "Payment attempt requires payment provider verification"
+                );
+            }
+
             payment.setStatus(attempt.getStatus());
             payment.setTransactionId(attempt.getTransactionId());
 
@@ -196,42 +206,28 @@ public class PaymentService {
             );
         }
 
-        PaymentAttempt attempt = new PaymentAttempt();
+        PaymentAttempt attempt;
 
-        attempt.setPayment(payment);
-        attempt.setIdempotencyKey(request.getIdempotencyKey());
-        attempt.setAmount(payment.getAmount());
-        attempt.setStatus(PaymentStatus.PROCESSING);
+        try {
 
+            attempt = paymentAttemptService.createPaymentAttempt(
+                    payment,
+                    request.getIdempotencyKey()
+            );
 
-        paymentAttemptRepository.saveAndFlush(attempt);
-//        try {
-//            paymentAttemptRepository.saveAndFlush(attempt);
-//        } catch (DataIntegrityViolationException ex) {
-//            PaymentAttempt concurrentAttempt =
-//                    paymentAttemptRepository
-//                            .findByPaymentIdAndIdempotencyKey(
-//                                    payment.getId(),
-//                                    request.getIdempotencyKey()
-//                            )
-//                            .orElseThrow(() ->
-//                                    new InvalidPaymentStatusException(
-//                                            "Payment attempt already exists"
-//                                    ));
-//
-//            if (concurrentAttempt.getStatus() == PaymentStatus.PROCESSING) {
-//                throw new InvalidPaymentStatusException(
-//                        "Payment attempt is still being processed"
-//                );
-//            }
-//
-//            payment.setStatus(concurrentAttempt.getStatus());
-//            payment.setTransactionId(
-//                    concurrentAttempt.getTransactionId()
-//            );
-//
-//            return paymentMapper.toResponse(payment);
-//        }
+        } catch (DataIntegrityViolationException ex) {
+
+            attempt = paymentAttemptRepository
+                    .findByPaymentIdAndIdempotencyKey(
+                            payment.getId(),
+                            request.getIdempotencyKey()
+                    )
+                    .orElseThrow(() ->
+                            new InvalidPaymentStatusException(
+                                    "Payment attempt could not be created"
+                            )
+                    );
+        }
 
         String transactionId = UUID.randomUUID().toString();
 
@@ -248,8 +244,11 @@ public class PaymentService {
                 );
             }
 
-            attempt.setStatus(PaymentStatus.SUCCESS);
-            attempt.setTransactionId(transactionId);
+            paymentAttemptRepository.updateAttemptResult(
+                    attempt.getId(),
+                    PaymentStatus.SUCCESS,
+                    transactionId
+            );
 
             order.setStatus(OrderStatus.PLACED);
 
@@ -265,7 +264,11 @@ public class PaymentService {
                 );
             }
 
-            attempt.setStatus(PaymentStatus.FAILED);
+            paymentAttemptRepository.updateAttemptResult(
+                    attempt.getId(),
+                    PaymentStatus.FAILED,
+                    null
+            );
 
             order.setStatus(OrderStatus.CANCELLED);
 
@@ -283,4 +286,5 @@ public class PaymentService {
 
         return paymentMapper.toResponse(payment);
     }
+
 }
