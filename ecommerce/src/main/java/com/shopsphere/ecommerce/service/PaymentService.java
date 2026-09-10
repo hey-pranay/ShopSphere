@@ -240,14 +240,7 @@ public class PaymentService {
 
                 PaymentStatus providerStatus = providerResult.getStatus();
 
-                System.out.println(
-                        "Provider result: status="
-                                + providerResult.getStatus()
-                                + ", transactionId="
-                                + providerResult.getTransactionId()
-                                + ", failureReason="
-                                + providerResult.getFailureReason()
-                );
+
                 if (providerStatus == PaymentStatus.SUCCESS) {
 
                     String transactionId = providerResult.getTransactionId();
@@ -286,7 +279,10 @@ public class PaymentService {
                 if (providerStatus == PaymentStatus.FAILED) {
 
                     int paymentUpdated =
-                            paymentRepository.markPaymentFailed(orderId);
+                            paymentRepository.markPaymentFailed(
+                                    orderId,
+                                    providerResult.getFailureReason()
+                            );
 
                     if (paymentUpdated == 0) {
                         throw new InvalidPaymentStatusException(
@@ -364,18 +360,18 @@ public class PaymentService {
         PaymentProviderResult providerResult =
                 paymentProvider.processPayment(
                         orderId,
+                        payment.getAmount(),
                         request.getIdempotencyKey()
                 );
 
         PaymentStatus providerStatus = providerResult.getStatus();
-        System.out.println(
-                "======= Provider result: status="
-                        + providerResult.getStatus()
-                        + ", transactionId="
-                        + providerResult.getTransactionId()
-                        + ", failureReason="
-                        + providerResult.getFailureReason()
-        );
+
+        if (providerStatus == null) {
+            throw new InvalidPaymentStatusException(
+                    "Payment provider returned no payment status"
+            );
+        }
+
 
         if (providerStatus == PaymentStatus.SUCCESS) {
 
@@ -408,8 +404,11 @@ public class PaymentService {
 
         } else if (providerStatus == PaymentStatus.FAILED) {
 
+            String failureReason = providerResult.getFailureReason();
+
             int updated = paymentRepository.markPaymentFailed(
-                    orderId
+                    orderId,
+                    failureReason
             );
 
             if (updated == 0) {

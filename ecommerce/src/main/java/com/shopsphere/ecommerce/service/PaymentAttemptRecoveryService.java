@@ -122,7 +122,10 @@ public class PaymentAttemptRecoveryService {
                                 .getId();
 
                 int paymentUpdated =
-                        paymentRepository.markPaymentFailed(orderId);
+                        paymentRepository.markPaymentFailed(
+                                orderId,
+                                providerResult.getFailureReason()
+                        );
 
                 if (paymentUpdated == 0) {
                     continue;

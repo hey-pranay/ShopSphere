@@ -40,9 +40,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Modifying
     @Query("""
                 UPDATE Payment p
-                SET p.status = com.shopsphere.ecommerce.entity.PaymentStatus.FAILED
+                SET p.status = com.shopsphere.ecommerce.entity.PaymentStatus.FAILED,
+                    p.failureReason = :failureReason
                 WHERE p.order.id = :orderId
                   AND p.status = com.shopsphere.ecommerce.entity.PaymentStatus.PENDING
             """)
-    int markPaymentFailed(@Param("orderId") Long orderId);
+    int markPaymentFailed(
+            @Param("orderId") Long orderId,
+            @Param("failureReason") String failureReason
+    );
 }

@@ -14,6 +14,7 @@ public class PaymentMapper {
                 payment.getAmount(),
                 payment.getStatus(),
                 payment.getTransactionId(),
+                payment.getFailureReason(),
                 payment.getCreatedAt(),
                 payment.getUpdatedAt()
         );

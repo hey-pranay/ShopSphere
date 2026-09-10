@@ -4,15 +4,18 @@ import com.shopsphere.ecommerce.dto.payment.PaymentProviderResult;
 import com.shopsphere.ecommerce.entity.PaymentStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 public class MockPaymentProvider implements PaymentProvider {
 
-    private PaymentStatus nextStatus = PaymentStatus.SUCCESS;
+    private PaymentStatus nextStatus = PaymentStatus.FAILED;
 
 
     @Override
     public PaymentProviderResult processPayment(
             Long orderId,
+            BigDecimal amount,
             String idempotencyKey
     ) {
         if (nextStatus == PaymentStatus.SUCCESS) {

@@ -13,6 +13,7 @@ public class PaymentResponse {
     private BigDecimal amount;
     private PaymentStatus status;
     private String transactionId;
+    private String failureReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -22,6 +23,7 @@ public class PaymentResponse {
             BigDecimal amount,
             PaymentStatus status,
             String transactionId,
+            String failureReason,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
@@ -30,6 +32,7 @@ public class PaymentResponse {
         this.amount = amount;
         this.status = status;
         this.transactionId = transactionId;
+        this.failureReason = failureReason;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -53,6 +56,10 @@ public class PaymentResponse {
 
     public String getTransactionId() {
         return transactionId;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
     }
 
     public LocalDateTime getCreatedAt() {
