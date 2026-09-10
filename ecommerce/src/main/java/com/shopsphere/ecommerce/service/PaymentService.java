@@ -246,6 +246,17 @@ public class PaymentService {
 
                     String transactionId = providerResult.getTransactionId();
 
+                    if (transactionId == null || transactionId.isBlank()) {
+                        throw new InvalidPaymentStatusException(
+                                "Payment provider returned SUCCESS without a transaction ID"
+                        );
+                    }
+
+                    validatePaymentTransition(
+                            payment.getStatus(),
+                            PaymentStatus.SUCCESS
+                    );
+
                     int paymentUpdated =
                             paymentRepository.markPaymentSuccess(
                                     orderId,
@@ -278,6 +289,11 @@ public class PaymentService {
                 }
 
                 if (providerStatus == PaymentStatus.FAILED) {
+
+                    validatePaymentTransition(
+                            payment.getStatus(),
+                            PaymentStatus.FAILED
+                    );
 
                     int paymentUpdated =
                             paymentRepository.markPaymentFailed(
@@ -405,6 +421,11 @@ public class PaymentService {
                     transactionId
             );
 
+            validatePaymentTransition(
+                    payment.getStatus(),
+                    PaymentStatus.SUCCESS
+            );
+
             if (updated == 0) {
                 throw new InvalidPaymentStatusException(
                         "Payment has already been processed"
@@ -430,6 +451,11 @@ public class PaymentService {
             int updated = paymentRepository.markPaymentFailed(
                     orderId,
                     failureReason
+            );
+
+            validatePaymentTransition(
+                    payment.getStatus(),
+                    PaymentStatus.FAILED
             );
 
             if (updated == 0) {
@@ -468,6 +494,40 @@ public class PaymentService {
         entityManager.refresh(payment);
 
         return paymentMapper.toResponse(payment);
+    }
+
+    private void validatePaymentTransition(
+            PaymentStatus current,
+            PaymentStatus next
+    ) {
+
+        boolean allowed = switch (current) {
+
+            case PENDING -> next == PaymentStatus.SUCCESS
+                    || next == PaymentStatus.FAILED
+                    || next == PaymentStatus.EXPIRED
+                    || next == PaymentStatus.CANCELLED;
+
+            case UNKNOWN -> next == PaymentStatus.SUCCESS
+                    || next == PaymentStatus.FAILED;
+
+            case SUCCESS -> next == PaymentStatus.REFUNDED;
+
+            case PROCESSING -> next == PaymentStatus.SUCCESS
+                    || next == PaymentStatus.FAILED
+                    || next == PaymentStatus.UNKNOWN;
+
+            case FAILED, EXPIRED, CANCELLED, REFUNDED -> false;
+        };
+
+        if (!allowed) {
+            throw new InvalidPaymentStatusException(
+                    "Invalid payment transition: "
+                            + current
+                            + " -> "
+                            + next
+            );
+        }
     }
 
 }

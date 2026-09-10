@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class MockPaymentProvider implements PaymentProvider {
 
-    private PaymentStatus nextStatus = PaymentStatus.SUCCESS;
+    private PaymentStatus nextStatus = PaymentStatus.FAILED;
 
     private final Map<String, String> transactionIds = new ConcurrentHashMap<>();
 
