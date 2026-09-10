@@ -343,6 +343,14 @@ public class PaymentService {
             );
         }
 
+
+        if (payment.getAmount().compareTo(order.getTotalAmount()) != 0) {
+            throw new InvalidPaymentStatusException(
+                    "Payment amount does not match order total"
+            );
+        }
+
+
         PaymentAttempt attempt;
 
         try {
