@@ -24,7 +24,7 @@ public class Payment {
     @Column(nullable = false, length = 20)
     private PaymentStatus status;
 
-    @Column(length = 100)
+    @Column(length = 100, unique = true)
     private String transactionId;
 
     @Column(length = 500)

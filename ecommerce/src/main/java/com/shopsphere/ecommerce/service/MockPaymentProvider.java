@@ -5,11 +5,16 @@ import com.shopsphere.ecommerce.entity.PaymentStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class MockPaymentProvider implements PaymentProvider {
 
-    private PaymentStatus nextStatus = PaymentStatus.FAILED;
+    private PaymentStatus nextStatus = PaymentStatus.SUCCESS;
+
+    private final Map<String, String> transactionIds = new ConcurrentHashMap<>();
 
 
     @Override
@@ -19,9 +24,15 @@ public class MockPaymentProvider implements PaymentProvider {
             String idempotencyKey
     ) {
         if (nextStatus == PaymentStatus.SUCCESS) {
+            String transactionId =
+                    transactionIds.computeIfAbsent(
+                            idempotencyKey,
+                            key -> "mock_txn_" + UUID.randomUUID()
+                    );
+
             return new PaymentProviderResult(
                     PaymentStatus.SUCCESS,
-                    "mock_txn_" + idempotencyKey,
+                    transactionId,
                     null
             );
         }
@@ -47,9 +58,19 @@ public class MockPaymentProvider implements PaymentProvider {
 
         if (nextStatus == PaymentStatus.SUCCESS) {
 
+            String transactionId = transactionIds.get(idempotencyKey);
+
+            if (transactionId == null) {
+                return new PaymentProviderResult(
+                        PaymentStatus.UNKNOWN,
+                        null,
+                        "Transaction ID not found for idempotency key"
+                );
+            }
+
             return new PaymentProviderResult(
                     PaymentStatus.SUCCESS,
-                    "mock_txn_" + idempotencyKey,
+                    transactionId,
                     null
             );
         }
