@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -325,6 +326,14 @@ public class PaymentService {
             payment.setTransactionId(attempt.getTransactionId());
 
             return paymentMapper.toResponse(payment);
+        }
+
+        if (order.getPaymentExpiresAt() != null
+                && order.getPaymentExpiresAt().isBefore(LocalDateTime.now())) {
+
+            throw new InvalidOrderStateException(
+                    "Payment window has expired for order " + orderId
+            );
         }
 
         if (order.getStatus() != OrderStatus.PENDING) {
