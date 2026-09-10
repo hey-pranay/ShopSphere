@@ -80,6 +80,12 @@ public class PaymentAttemptRecoveryService {
 
                 String transactionId = providerResult.getTransactionId();
 
+                if (transactionId == null || transactionId.isBlank()) {
+                    throw new InvalidPaymentStatusException(
+                            "Payment provider returned SUCCESS without a transaction ID"
+                    );
+                }
+
                 int paymentUpdated =
                         paymentRepository.markPaymentSuccess(
                                 orderId,
@@ -121,10 +127,16 @@ public class PaymentAttemptRecoveryService {
                                 .getOrder()
                                 .getId();
 
+                String failureReason = providerResult.getFailureReason();
+
+                if (failureReason == null || failureReason.isBlank()) {
+                    failureReason = "Payment failed without a reason from provider";
+                }
+
                 int paymentUpdated =
                         paymentRepository.markPaymentFailed(
                                 orderId,
-                                providerResult.getFailureReason()
+                                failureReason
                         );
 
                 if (paymentUpdated == 0) {

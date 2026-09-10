@@ -406,6 +406,10 @@ public class PaymentService {
 
             String failureReason = providerResult.getFailureReason();
 
+            if (failureReason == null || failureReason.isBlank()) {
+                failureReason = "Payment failed without a reason from provider";
+            }
+
             int updated = paymentRepository.markPaymentFailed(
                     orderId,
                     failureReason
