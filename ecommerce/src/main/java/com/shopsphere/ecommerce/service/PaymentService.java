@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class PaymentService {
@@ -241,9 +240,17 @@ public class PaymentService {
 
                 PaymentStatus providerStatus = providerResult.getStatus();
 
+                System.out.println(
+                        "Provider result: status="
+                                + providerResult.getStatus()
+                                + ", transactionId="
+                                + providerResult.getTransactionId()
+                                + ", failureReason="
+                                + providerResult.getFailureReason()
+                );
                 if (providerStatus == PaymentStatus.SUCCESS) {
 
-                    String transactionId = UUID.randomUUID().toString();
+                    String transactionId = providerResult.getTransactionId();
 
                     int paymentUpdated =
                             paymentRepository.markPaymentSuccess(
@@ -354,9 +361,31 @@ public class PaymentService {
                     );
         }
 
-        String transactionId = UUID.randomUUID().toString();
+        PaymentProviderResult providerResult =
+                paymentProvider.processPayment(
+                        orderId,
+                        request.getIdempotencyKey()
+                );
 
-        if (request.getSuccess()) {
+        PaymentStatus providerStatus = providerResult.getStatus();
+        System.out.println(
+                "======= Provider result: status="
+                        + providerResult.getStatus()
+                        + ", transactionId="
+                        + providerResult.getTransactionId()
+                        + ", failureReason="
+                        + providerResult.getFailureReason()
+        );
+
+        if (providerStatus == PaymentStatus.SUCCESS) {
+
+            String transactionId = providerResult.getTransactionId();
+
+            if (transactionId == null || transactionId.isBlank()) {
+                throw new InvalidPaymentStatusException(
+                        "Payment provider returned SUCCESS without a transaction ID"
+                );
+            }
 
             int updated = paymentRepository.markPaymentSuccess(
                     orderId,
@@ -377,7 +406,7 @@ public class PaymentService {
 
             order.setStatus(OrderStatus.PLACED);
 
-        } else {
+        } else if (providerStatus == PaymentStatus.FAILED) {
 
             int updated = paymentRepository.markPaymentFailed(
                     orderId
@@ -404,6 +433,15 @@ public class PaymentService {
                         item.getQuantity()
                 );
             }
+        } else {
+
+            paymentAttemptRepository.markAttemptUnknown(
+                    attempt.getId()
+            );
+
+            throw new InvalidPaymentStatusException(
+                    "Payment provider could not determine payment status"
+            );
         }
 
 

@@ -70,6 +70,43 @@ public class PaymentAttemptRecoveryService {
 
             PaymentStatus providerStatus = providerResult.getStatus();
 
+
+            if (providerStatus == PaymentStatus.SUCCESS) {
+
+                Long orderId =
+                        attempt.getPayment()
+                                .getOrder()
+                                .getId();
+
+                String transactionId = providerResult.getTransactionId();
+
+                int paymentUpdated =
+                        paymentRepository.markPaymentSuccess(
+                                orderId,
+                                transactionId
+                        );
+
+                if (paymentUpdated == 0) {
+                    continue;
+                }
+
+                int attemptUpdated =
+                        paymentAttemptRepository.markUnknownAttemptSuccessful(
+                                attempt.getId(),
+                                transactionId
+                        );
+
+                if (attemptUpdated == 0) {
+                    throw new InvalidPaymentStatusException(
+                            "Payment attempt was already resolved"
+                    );
+                }
+
+                var order = attempt.getPayment().getOrder();
+
+                order.setStatus(OrderStatus.PLACED);
+            }
+
             System.out.println(
                     "Recovery check: attempt="
                             + attempt.getId()

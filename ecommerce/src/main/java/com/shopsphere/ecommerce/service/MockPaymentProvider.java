@@ -7,8 +7,37 @@ import org.springframework.stereotype.Service;
 @Service
 public class MockPaymentProvider implements PaymentProvider {
 
-    private PaymentStatus nextStatus = PaymentStatus.FAILED;
+    private PaymentStatus nextStatus = PaymentStatus.SUCCESS;
 
+
+    @Override
+    public PaymentProviderResult processPayment(
+            Long orderId,
+            String idempotencyKey
+    ) {
+        if (nextStatus == PaymentStatus.SUCCESS) {
+            return new PaymentProviderResult(
+                    PaymentStatus.SUCCESS,
+                    "mock_txn_" + idempotencyKey,
+                    null
+            );
+        }
+
+
+        if (nextStatus == PaymentStatus.FAILED) {
+            return new PaymentProviderResult(
+                    PaymentStatus.FAILED,
+                    null,
+                    "Mock payment failed"
+            );
+        }
+
+        return new PaymentProviderResult(
+                PaymentStatus.UNKNOWN,
+                null,
+                "Mock provider could not determine payment status"
+        );
+    }
 
     @Override
     public PaymentProviderResult verifyPayment(String idempotencyKey) {

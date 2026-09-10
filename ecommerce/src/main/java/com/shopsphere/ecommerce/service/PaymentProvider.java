@@ -7,4 +7,10 @@ public interface PaymentProvider {
 
     PaymentProviderResult verifyPayment(String idempotencyKey);
 
+    PaymentProviderResult processPayment(
+            Long orderId,
+            String idempotencyKey
+    );
+
+
 }
